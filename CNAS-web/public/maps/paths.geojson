@@ -1,0 +1,390 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "p0",
+        "name": "Exit Gate",
+        "type": "gate"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            124.74796351,
+            8.54133389
+          ],
+          [
+            124.74795021,
+            8.54132327
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "p1",
+        "name": "Entrance Gate",
+        "type": "gate"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            124.74832181,
+            8.54130868
+          ],
+          [
+            124.74827538,
+            8.54132309
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "p2",
+        "name": "Main Walkway",
+        "type": "walkway"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            124.74829373,
+            8.54131819
+          ],
+          [
+            124.74825088,
+            8.54118865
+          ],
+          [
+            124.74841311,
+            8.54112494
+          ],
+          [
+            124.74840141,
+            8.54108928
+          ],
+          [
+            124.74790827,
+            8.54081377
+          ],
+          [
+            124.74795081,
+            8.54074065
+          ],
+          [
+            124.74745185,
+            8.54044988
+          ],
+          [
+            124.74740486,
+            8.54052584
+          ],
+          [
+            124.74727434,
+            8.54057079
+          ],
+          [
+            124.74725904,
+            8.54061063
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "p3",
+        "name": "Walkway 3",
+        "type": "walkway"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            124.74795089,
+            8.54074074
+          ],
+          [
+            124.74853279,
+            8.5410746
+          ],
+          [
+            124.74841313,
+            8.54112505
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "p4",
+        "name": "Walkway 4",
+        "type": "walkway"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            124.74853271,
+            8.54107482
+          ],
+          [
+            124.74860614,
+            8.54095264
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "p5",
+        "name": "Walkway 5",
+        "type": "walkway"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            124.74790829,
+            8.54081391
+          ],
+          [
+            124.74788626,
+            8.5408361
+          ],
+          [
+            124.74776901,
+            8.54077018
+          ],
+          [
+            124.74778555,
+            8.5407394
+          ],
+          [
+            124.7474061,
+            8.54052379
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "p6",
+        "name": "Walkway 6",
+        "type": "walkway"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            124.7472999,
+            8.54030622
+          ],
+          [
+            124.74731027,
+            8.54031207
+          ],
+          [
+            124.74729691,
+            8.54033384
+          ],
+          [
+            124.74740345,
+            8.54039644
+          ],
+          [
+            124.74738512,
+            8.54045361
+          ],
+          [
+            124.74742972,
+            8.54048518
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "p7",
+        "name": "Walkway 7",
+        "type": "walkway"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            124.74825093,
+            8.5411886
+          ],
+          [
+            124.74813527,
+            8.54123571
+          ],
+          [
+            124.74799738,
+            8.54128406
+          ],
+          [
+            124.74796523,
+            8.54130952
+          ],
+          [
+            124.74795377,
+            8.54132596
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "p8",
+        "name": "Walkway 8",
+        "type": "walkway"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            124.74799693,
+            8.54128424
+          ],
+          [
+            124.74795871,
+            8.54125049
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "p9",
+        "name": "Walkway 9",
+        "type": "walkway"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            124.74702109,
+            8.54018004
+          ],
+          [
+            124.7470753,
+            8.54032349
+          ],
+          [
+            124.74712334,
+            8.54030937
+          ],
+          [
+            124.74720274,
+            8.54056888
+          ],
+          [
+            124.74727447,
+            8.54057076
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "p10",
+        "name": "Walkway 10",
+        "type": "walkway"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            124.74763463,
+            8.54065399
+          ],
+          [
+            124.74759444,
+            8.54072368
+          ],
+          [
+            124.7475214,
+            8.54069191
+          ],
+          [
+            124.74744298,
+            8.54076688
+          ],
+          [
+            124.74725919,
+            8.54061008
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "p11",
+        "name": "Walkway 11",
+        "type": "walkway"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            124.74759442,
+            8.54072375
+          ],
+          [
+            124.74779792,
+            8.54083902
+          ],
+          [
+            124.74785517,
+            8.54087968
+          ],
+          [
+            124.74814133,
+            8.54111396
+          ],
+          [
+            124.7481506,
+            8.54122861
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "p12",
+        "name": "Walkway 12",
+        "type": "walkway"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            124.7478403,
+            8.54081031
+          ],
+          [
+            124.74780589,
+            8.54084476
+          ]
+        ]
+      }
+    }
+  ]
+}

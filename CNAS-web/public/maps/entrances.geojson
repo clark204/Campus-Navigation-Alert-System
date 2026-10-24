@@ -1,0 +1,261 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "r0",
+        "name": "HM Hot Kitchen",
+        "building_id": "b2",
+        "is_it": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          124.74799236,
+          8.54085336
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "r1",
+        "name": "Cold HM Room",
+        "building_id": "b2",
+        "is_it": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          124.74800614,
+          8.54086133
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "r2",
+        "name": "QUAMC Office",
+        "building_id": "b2",
+        "is_it": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          124.748064,
+          8.54089338
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "r3",
+        "name": "DSAS Office",
+        "building_id": "b2",
+        "is_it": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          124.7481354,
+          8.54093396
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "r4",
+        "name": "ComLab 3",
+        "building_id": "b2",
+        "is_it": true
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          124.74820565,
+          8.54097357
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "r5",
+        "name": "ComLab 2",
+        "building_id": "b2",
+        "is_it": true
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          124.748278,
+          8.54101378
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "r6",
+        "name": "ComLab 1",
+        "building_id": "b2",
+        "is_it": true
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          124.74829213,
+          8.54102186
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "r7",
+        "name": "QUILL Office",
+        "building_id": "b2",
+        "is_it": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          124.74838169,
+          8.54107226
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "r8",
+        "name": "Technopreneurship Office",
+        "building_id": "b2",
+        "is_it": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          124.74841012,
+          8.54108793
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "r9",
+        "name": "HM Simulation",
+        "building_id": "b7",
+        "is_it": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          124.74783565,
+          8.54080077
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "r10",
+        "name": "Biological Science Lab",
+        "building_id": "b7",
+        "is_it": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          124.74779133,
+          8.54073896
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "r11",
+        "name": "Physical Science Lab",
+        "building_id": "b7",
+        "is_it": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          124.74771205,
+          8.54069226
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "r12",
+        "name": "ComLab 4",
+        "building_id": "b7",
+        "is_it": true
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          124.7476313,
+          8.54064661
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "r13",
+        "name": "IT Faculty Office",
+        "building_id": "b7",
+        "is_it": true
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          124.74754489,
+          8.54059722
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "r14",
+        "name": "Alumni Office",
+        "building_id": "b7",
+        "is_it": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          124.74748555,
+          8.54056393
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "r15",
+        "name": "CR",
+        "building_id": "b7",
+        "is_it": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          124.74745723,
+          8.54054785
+        ]
+      }
+    }
+  ]
+}

@@ -6,4 +6,30 @@
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+    --color-primary: #581825;
+    --color-primary-hover: #3D0F18;
+    --color-secondary: #C59B27;
+    --color-secondary-hover: #A6801C;
+    --color-text-primary: #212529;
+    --color-text-muted: #6C757D;
+    --color-text-light: #FFFFFF;
+    --color-bg-light: #FAF8F5;
+    --color-surface: #FFFFFF;
+    --color-border: #E5E0DB;
+}
+
+@layer base {
+    button, select { cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--color-secondary); outline-offset: 4px; }
+}
+
+@layer components {
+    .nav-button { @apply rounded-lg border border-secondary/60 bg-secondary/15 px-3 py-2.5 text-[#ead59c] transition hover:bg-secondary/25; }
+    .footer-heading { @apply mb-4 text-[11px] font-semibold tracking-widest text-[#ddc888]; }
+    .login-input { @apply w-full rounded-xl border border-border bg-bg-light px-4 py-3 text-sm text-text-primary transition placeholder:text-text-muted/70 focus:border-secondary focus:bg-white focus:ring-4 focus:ring-secondary/20 focus:outline-none; }
+    .footer-link { @apply transition underline-offset-4 hover:text-white hover:underline; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }

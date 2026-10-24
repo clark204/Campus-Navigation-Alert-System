@@ -2,6 +2,5 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::view('/', 'pages.land-page')->name('landing');
+Route::view('/login', 'pages.login-page')->name('login');
