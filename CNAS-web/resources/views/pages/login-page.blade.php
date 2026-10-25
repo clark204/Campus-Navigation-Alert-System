@@ -17,7 +17,7 @@
         </div>
 
         <div class="mx-auto grid w-full max-w-7xl flex-1 items-center gap-10 px-5 py-10 sm:px-8 sm:py-12 lg:grid-cols-[1fr_minmax(0,28rem)] lg:gap-16 lg:px-12 lg:py-14">
-            <div class="flex flex-col h-full py-24 max-w-xl text-white max-lg:hidden">
+            <div class="h-full py-24 max-w-xl text-white max-lg:hidden">
                 <p class="mb-6 flex items-center gap-3 text-[10px] font-semibold tracking-[.22em] text-[#ead59c]">
                     <span class="h-px w-9 bg-secondary"></span> ONE ACCOUNT. EVERY CORNER OF CAMPUS.
                 </p>
@@ -75,7 +75,12 @@
                     </button>
                 </form>
 
-                <p class="mt-8 border-t border-border pt-5 text-center text-xs text-text-muted">
+                <p class="mt-5 text-center text-xs text-text-muted">
+                    Don't have an account?
+                    <a href="{{ route('register') }}" class="font-semibold text-primary underline-offset-4 hover:underline">Create one</a>
+                </p>
+
+                <p class="mt-6 border-t border-border pt-5 text-center text-xs text-text-muted">
                     Just looking for directions?
                     <a href="{{ route('landing') }}" class="font-semibold text-primary underline-offset-4 hover:underline">Explore the campus without signing in</a>
                 </p>
@@ -83,18 +88,3 @@
         </div>
     </section>
 @endsection
-
-@push('scripts.index')
-    <script>
-        document.querySelectorAll('[data-password-toggle]').forEach((button) => {
-            const input = document.getElementById(button.getAttribute('aria-controls'));
-            button.addEventListener('click', () => {
-                const showing = input.type === 'text';
-                input.type = showing ? 'password' : 'text';
-                button.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
-                button.querySelector('[data-icon-show]').classList.toggle('hidden', !showing);
-                button.querySelector('[data-icon-hide]').classList.toggle('hidden', showing);
-            });
-        });
-    </script>
-@endpush
