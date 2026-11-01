@@ -13,8 +13,16 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('school_id')->nullable()->unique();
+            $table->string('first_name');
+            $table->string('middle_name')->nullable();
+            $table->string('last_name');
             $table->string('email')->unique();
+            $table->string('role')->default('student'); // App\Enums\UserRole
+            // Nullable so admin/staff accounts don't need a college.
+            $table->string('college_id', 10)->nullable();
+            $table->foreign('college_id')->references('id')->on('colleges')
+                ->cascadeOnUpdate()->nullOnDelete();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();

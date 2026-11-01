@@ -114,4 +114,21 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Seeded Admin Account
+    |--------------------------------------------------------------------------
+    |
+    | Used by Database\Seeders\AdminSeeder. The username is stored as the
+    | account's school ID, so the admin signs in with it in the "ID number
+    | or email" field.
+    |
+    */
+
+    'admin' => [
+        'username' => env('ADMIN_USERNAME'),
+        'email' => env('ADMIN_EMAIL'),
+        'password' => env('ADMIN_PASSWORD'),
+    ],
+
 ];
