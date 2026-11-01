@@ -29,18 +29,25 @@
                 </p>
             </div>
 
-            {{-- Frontend only: submitting does nothing until authentication is wired up. --}}
             <div class="w-full rounded-3xl bg-surface p-7 shadow-2xl sm:p-9 max-lg:mx-auto max-lg:max-w-md">
                 <p class="text-[10px] font-bold tracking-[.2em] text-secondary-hover">TCC NAV ACCOUNT</p>
                 <h2 class="mt-2 text-2xl font-semibold tracking-tight text-text-primary">Sign in</h2>
                 <p class="mt-2 text-sm text-text-muted">Use your school ID number or email address.</p>
 
-                <form class="mt-8 space-y-5" onsubmit="event.preventDefault()" novalidate>
+                @if (session('status'))
+                    <p role="status" class="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</p>
+                @endif
+
+                <form method="POST" action="{{ route('login.store') }}" class="mt-8 space-y-5" novalidate>
+                    @csrf
+
                     <div>
                         <label for="login" class="mb-2 block text-xs font-semibold text-text-primary">ID number or email</label>
                         <input id="login" name="login" type="text" autocomplete="username" autocapitalize="none"
-                            spellcheck="false" required placeholder="e.g. 2024-00123 or name@tcc.edu.ph"
-                            class="login-input">
+                            spellcheck="false" required placeholder="e.g. 20240001 or name@tcc.edu.ph"
+                            value="{{ old('login') }}" class="login-input"
+                            @error('login') aria-invalid="true" aria-describedby="login-error" @enderror>
+                        @error('login') <p id="login-error" class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
@@ -50,7 +57,8 @@
                         </div>
                         <div class="relative">
                             <input id="password" name="password" type="password" autocomplete="current-password" required
-                                placeholder="Enter your password" class="login-input pr-12">
+                                placeholder="Enter your password" class="login-input pr-12"
+                                @error('password') aria-invalid="true" aria-describedby="password-error" @enderror>
                             <button type="button" data-password-toggle aria-controls="password" aria-label="Show password"
                                 class="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-xl text-text-muted transition hover:text-primary">
                                 <svg data-icon-show class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
@@ -62,10 +70,11 @@
                                 </svg>
                             </button>
                         </div>
+                        @error('password') <p id="password-error" class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
 
                     <label class="flex w-fit items-center gap-2.5 text-xs text-text-muted">
-                        <input type="checkbox" name="remember" class="size-4 rounded accent-primary">
+                        <input type="checkbox" name="remember" value="1" @checked(old('remember')) class="size-4 rounded accent-primary">
                         Keep me signed in
                     </label>
 

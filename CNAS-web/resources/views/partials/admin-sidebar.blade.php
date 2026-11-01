@@ -14,6 +14,7 @@
             ['label' => 'Colleges', 'route' => 'admin.colleges', 'icon' => 'M2 9l10-5 10 5-10 5zm4 2v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5m4-2v5'],
         ],
         'Site' => [
+            ['label' => 'Academic term', 'route' => 'admin.academic-terms.index', 'icon' => 'M7 3v3m10-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm3 8h2m4 0h2m-8 4h2'],
             ['label' => 'Settings', 'route' => 'admin.settings', 'icon' => 'M4 6h9m4 0h3M4 12h3m4 0h9M4 18h11m4 0h1M15 4v4M9 10v4m8 2v4'],
         ],
     ];

@@ -6,7 +6,7 @@
         'Sustainable Development Goals' => '#',
         'News & updates' => '#',
         'Events' => '#',
-        'Contact' => '#',
+        'Contact' => route('landing').'#contact',
     ];
     $externalLinks = ['CHED' => '#', 'Tagoloan LGU' => '#'];
 @endphp
@@ -34,7 +34,7 @@
         <div>
             <h2 class="footer-heading">VISIT & SUPPORT</h2>
             <address class="text-sm leading-6 not-italic">Tagoloan, Misamis Oriental,<br>Philippines</address>
-            <a href="#" class="footer-link mt-3 inline-block text-sm">Contact the college →</a>
+            <a href="{{ route('landing') }}#contact" class="footer-link mt-3 inline-block text-sm">Contact the college →</a>
             <p class="mt-4 text-xs leading-5 text-white/50">We look forward to welcoming you to campus.</p>
         </div>
 

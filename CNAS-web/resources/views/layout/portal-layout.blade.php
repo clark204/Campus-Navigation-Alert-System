@@ -8,6 +8,7 @@
         ['label' => 'Map', 'route' => 'navigate', 'roles' => $everyone, 'icon' => 'M9 4 3 6.5V20l6-2.5 6 2.5 6-2.5V4l-6 2.5zm0 0v13.5m6-11V20'],
         ['label' => 'Classes', 'route' => "{$role->value}.classes", 'roles' => [UserRole::Faculty], 'icon' => 'M4 6.5A2.5 2.5 0 0 1 6.5 4H20v14H6.5A2.5 2.5 0 0 0 4 20.5zm0 0v14M8 8h8'],
         ['label' => 'Saved', 'route' => "{$role->value}.saved", 'roles' => $everyone, 'icon' => 'M6 4h12v17l-6-4-6 4z'],
+        // TODO: the Profile page gets an "Edit name" form with the registration re-split rules (see RegistrationService::ensureNameMatchesCor).
         ['label' => 'Profile', 'route' => "{$role->value}.profile", 'roles' => $everyone, 'icon' => 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 9a7 7 0 0 1 14 0'],
     ])->filter(fn (array $tab): bool => in_array($role, $tab['roles'], true))->values()->all();
 @endphp

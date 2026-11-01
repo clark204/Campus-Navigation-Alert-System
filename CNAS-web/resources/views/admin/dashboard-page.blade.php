@@ -43,6 +43,20 @@
 
 @section('content.admin')
     <div class="mx-auto flex max-w-7xl flex-col gap-6">
+        {{-- Real data (DashboardController), unlike the placeholder figures below. --}}
+        @if ($currentTerm === null)
+            <p role="alert" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                Registration is closed: no academic term is set as current.
+                <a href="{{ route('admin.academic-terms.index') }}" class="font-semibold underline underline-offset-4">Set the current term</a>
+            </p>
+        @elseif ($termMayBeOutdated)
+            <p role="status" class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                The current term ({{ $currentTerm->label() }}) was set {{ $currentTerm->set_current_at->diffForHumans() }}.
+                Is it still right? Students can only register with a COR for this term.
+                <a href="{{ route('admin.academic-terms.index') }}" class="font-semibold underline underline-offset-4">Review academic term</a>
+            </p>
+        @endif
+
         <div class="flex flex-wrap items-end justify-between gap-4">
             <div>
                 <h1 class="text-2xl font-semibold tracking-tight text-primary sm:text-3xl">Campus overview</h1>
