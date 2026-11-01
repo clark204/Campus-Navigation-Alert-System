@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Trust tunnels like ngrok so asset URLs use https.
         $middleware->trustProxies(at: '*');
+
+        // Signed-in users who open a guest page (landing, login, register) go to their role's home.
+        $middleware->redirectUsersTo(fn (Request $request) => route($request->user()->role->homeRoute()));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

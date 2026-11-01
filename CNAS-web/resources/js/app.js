@@ -10,6 +10,32 @@ document.querySelectorAll('[data-password-toggle]').forEach((button) => {
     });
 });
 
+// Clear server errors as soon as the user edits a field. Each error lists the fields it belongs to in
+// data-error-for (e.g. "login password" for "Invalid credentials."); typing in any of them removes the
+// message and the invalid state from all of them.
+document.querySelectorAll('form[data-clear-errors]').forEach((form) => {
+    form.addEventListener('input', (event) => {
+        const name = event.target.name;
+        if (!name) {
+            return;
+        }
+        form.querySelectorAll('[data-error-for]').forEach((error) => {
+            const fields = error.dataset.errorFor.split(/\s+/);
+            if (!fields.includes(name)) {
+                return;
+            }
+            fields.forEach((field) => {
+                const input = form.elements.namedItem(field);
+                if (input instanceof HTMLElement && input.getAttribute('aria-describedby') === error.id) {
+                    input.removeAttribute('aria-invalid');
+                    input.removeAttribute('aria-describedby');
+                }
+            });
+            error.remove();
+        });
+    });
+});
+
 // Block double submits on forms that create something (the server is idempotent too).
 document.querySelectorAll('form[data-submit-once]').forEach((form) => {
     form.addEventListener('submit', () => {

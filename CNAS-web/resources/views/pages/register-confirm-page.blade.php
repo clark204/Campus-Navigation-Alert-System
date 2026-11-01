@@ -66,7 +66,7 @@
         <div>
             <label for="email" class="mb-1.5 block text-xs font-semibold text-text-primary">Email</label>
             <input id="email" name="email" type="email" autocomplete="email" autocapitalize="none"
-                spellcheck="false" required value="{{ old('email') }}" placeholder="name@tcc.edu.ph" class="login-input"
+                spellcheck="false" required value="{{ old('email') }}" placeholder="example@gmail.com" class="login-input"
                 @error('email') aria-invalid="true" aria-describedby="email-error" @enderror>
             @error('email') <p id="email-error" class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
         </div>

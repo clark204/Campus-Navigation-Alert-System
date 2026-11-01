@@ -35,6 +35,10 @@
     <main id="main-content"
         class="px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-8 md:pt-8 md:pb-12 xl:px-10">
         @yield('content.portal')
+
+        <div class="mx-auto max-w-6xl">
+            @include('partials.help-footer')
+        </div>
     </main>
 
     @include('partials.portal-tabbar', ['tabs' => $portalTabs])

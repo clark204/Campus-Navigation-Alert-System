@@ -27,7 +27,7 @@
                             <li>
                                 {{ $corError }}
                                 @if ($corError === \App\Services\RegistrationService::DUPLICATE_STUDENT_ID_MESSAGE)
-                                    <a href="{{ route('landing') }}#contact" class="font-semibold underline underline-offset-2">See contact details</a>
+                                    <a href="#contact" class="font-semibold underline underline-offset-2">See contact details</a>
                                 @endif
                             </li>
                         @endforeach

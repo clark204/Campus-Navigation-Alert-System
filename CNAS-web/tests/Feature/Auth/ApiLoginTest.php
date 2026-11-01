@@ -92,8 +92,8 @@ class ApiLoginTest extends TestCase
     {
         $this->login(['password' => 'wrong'])
             ->assertUnprocessable()
-            ->assertJsonPath('message', 'These credentials do not match our records.')
-            ->assertJsonPath('errors', ['login' => ['These credentials do not match our records.']]);
+            ->assertJsonPath('message', 'Invalid credentials.')
+            ->assertJsonPath('errors', ['password' => ['Invalid credentials.']]);
 
         $this->assertSame(0, PersonalAccessToken::count());
     }
@@ -102,7 +102,7 @@ class ApiLoginTest extends TestCase
     {
         $this->login(['login' => 'nobody@tcc.edu.ph'])
             ->assertUnprocessable()
-            ->assertJsonPath('errors', ['login' => ['These credentials do not match our records.']]);
+            ->assertJsonPath('errors', ['password' => ['Invalid credentials.']]);
     }
 
     public function test_the_device_name_is_required(): void

@@ -7,9 +7,10 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Middleware\EnsureIdempotentRequest;
 use App\Http\Middleware\EnsureUserIsAdmin;
+use Illuminate\Http\Middleware\SetCacheHeaders;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'pages.land-page')->name('landing');
+// Open to everyone, signed in or not.
 Route::view('/navigate', 'pages.navigate-page')->name('navigate');
 
 Route::middleware(['auth', EnsureUserIsAdmin::class])->prefix('admin')->name('admin.')->group(function () {
@@ -24,7 +25,11 @@ Route::middleware(['auth', EnsureUserIsAdmin::class])->prefix('admin')->name('ad
 Route::view('/student', 'portal.dashboard-page', ['role' => UserRole::Student])->name('student.dashboard');
 Route::view('/faculty', 'portal.dashboard-page', ['role' => UserRole::Faculty])->name('faculty.dashboard');
 
-Route::middleware('guest')->group(function () {
+// Guest-only pages: signed-in users go to their home (bootstrap/app.php, redirectUsersTo). no-store makes the
+// back button reload them (and so redirect) instead of showing a cached copy after signing in.
+Route::middleware(['guest', SetCacheHeaders::using('no_store;private')])->group(function () {
+    Route::view('/', 'pages.land-page')->name('landing');
+
     Route::get('/login', [LoginController::class, 'create'])->name('login');
     Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:login')->name('login.store');
 

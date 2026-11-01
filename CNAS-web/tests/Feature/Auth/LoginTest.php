@@ -44,22 +44,56 @@ class LoginTest extends TestCase
         $this->assertNotNull($user->fresh()->remember_token);
     }
 
-    public function test_an_unknown_login_is_rejected(): void
+    public function test_an_unknown_login_gets_the_same_generic_message(): void
     {
         $this->post(route('login.store'), ['login' => 'nobody@tcc.edu.ph', 'password' => 'password'])
-            ->assertSessionHasErrors(['login' => 'These credentials do not match our records.']);
+            ->assertSessionHasErrors(['password' => 'Invalid credentials.'])
+            ->assertSessionDoesntHaveErrors('login');
 
         $this->assertGuest();
     }
 
-    public function test_a_wrong_password_is_rejected(): void
+    public function test_a_wrong_password_shows_invalid_credentials_under_the_password_and_marks_both_fields(): void
     {
         User::factory()->create(['school_id' => '20240001']);
 
-        $this->post(route('login.store'), ['login' => '20240001', 'password' => 'wrong'])
-            ->assertSessionHasErrors(['login' => 'These credentials do not match our records.']);
+        $html = $this->from(route('login'))->followingRedirects()
+            ->post(route('login.store'), ['login' => '20240001', 'password' => 'wrong'])
+            ->assertOk()
+            ->assertSee('value="20240001"', false)
+            ->assertDontSee('value="wrong"', false)
+            ->getContent();
 
         $this->assertGuest();
+        $this->assertSame(1, substr_count($html, 'Invalid credentials.'));
+
+        $passwordInputAt = strpos($html, 'id="password"');
+        $messageAt = strpos($html, 'Invalid credentials.');
+        $this->assertGreaterThan($passwordInputAt, $messageAt, 'The message comes after the password field.');
+        $this->assertMatchesRegularExpression('/<p id="password-error" data-error-for="login password"/', $html);
+
+        // Both inputs are invalid and point at the one message.
+        $this->assertMatchesRegularExpression('/id="login"[^>]*aria-invalid="true" aria-describedby="password-error"/', $html);
+        $this->assertMatchesRegularExpression('/id="password"[^>]*aria-invalid="true" aria-describedby="password-error"/', $html);
+        $this->assertStringContainsString('data-clear-errors', $html);
+    }
+
+    public function test_empty_fields_keep_their_own_messages(): void
+    {
+        $html = $this->from(route('login'))->followingRedirects()
+            ->post(route('login.store'), ['login' => '', 'password' => ''])
+            ->assertOk()
+            ->assertSeeInOrder(['id="login"', 'Enter your ID number or email.', 'id="password"', 'Enter your password.'], false)
+            ->assertDontSee('Invalid credentials.')
+            ->getContent();
+
+        $this->assertMatchesRegularExpression('/id="login"[^>]*aria-describedby="login-error"/', $html);
+        $this->assertMatchesRegularExpression('/<p id="password-error" data-error-for="password"/', $html);
+    }
+
+    public function test_the_login_placeholder_shows_an_eight_digit_student_id(): void
+    {
+        $this->get(route('login'))->assertSee('placeholder="e.g. 20240001 or example@gmail.com"', false);
     }
 
     public function test_a_user_can_sign_out(): void

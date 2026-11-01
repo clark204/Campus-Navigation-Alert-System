@@ -1,4 +1,11 @@
 @extends('layout.index-layout')
+@use('App\Services\LoginService')
+
+@php
+    // Wrong credentials: one generic message under the password, and both fields marked invalid.
+    $credentialsFailed = $errors->first('password') === LoginService::FAILED_MESSAGE;
+    $loginErrorId = $errors->has('login') ? 'login-error' : ($credentialsFailed ? 'password-error' : null);
+@endphp
 
 @section('title', 'TCC NAV · Sign in')
 
@@ -38,16 +45,16 @@
                     <p role="status" class="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</p>
                 @endif
 
-                <form method="POST" action="{{ route('login.store') }}" class="mt-8 space-y-5" novalidate>
+                <form method="POST" action="{{ route('login.store') }}" class="mt-8 space-y-5" novalidate data-clear-errors>
                     @csrf
 
                     <div>
                         <label for="login" class="mb-2 block text-xs font-semibold text-text-primary">ID number or email</label>
                         <input id="login" name="login" type="text" autocomplete="username" autocapitalize="none"
-                            spellcheck="false" required placeholder="e.g. 20240001 or name@tcc.edu.ph"
+                            spellcheck="false" required placeholder="e.g. 20240001 or example@gmail.com"
                             value="{{ old('login') }}" class="login-input"
-                            @error('login') aria-invalid="true" aria-describedby="login-error" @enderror>
-                        @error('login') <p id="login-error" class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            @if ($loginErrorId) aria-invalid="true" aria-describedby="{{ $loginErrorId }}" @endif>
+                        @error('login') <p id="login-error" data-error-for="login" class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
@@ -70,7 +77,10 @@
                                 </svg>
                             </button>
                         </div>
-                        @error('password') <p id="password-error" class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        @error('password')
+                            <p id="password-error" data-error-for="{{ $credentialsFailed ? 'login password' : 'password' }}"
+                                class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     <label class="flex w-fit items-center gap-2.5 text-xs text-text-muted">

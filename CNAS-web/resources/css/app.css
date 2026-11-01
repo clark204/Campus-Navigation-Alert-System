@@ -24,12 +24,46 @@
 }
 
 @layer components {
-    .nav-button { @apply rounded-lg border border-secondary/60 bg-secondary/15 px-3 py-2.5 text-[#ead59c] transition hover:bg-secondary/25; }
-    .footer-heading { @apply mb-4 text-[11px] font-semibold tracking-widest text-[#ddc888]; }
-    .login-input { @apply w-full rounded-xl border border-border bg-bg-light px-4 py-3 text-sm text-text-primary transition placeholder:text-text-muted/70 focus:border-secondary focus:bg-white focus:ring-4 focus:ring-secondary/20 focus:outline-none; }
-    .footer-link { @apply transition underline-offset-4 hover:text-white hover:underline; }
+    /* Site header actions. Both are at least 44px tall and use a pale gold focus ring that shows on the maroon header and on gold. */
+    .header-cta, .header-button {
+        @apply relative inline-flex min-h-11 items-center justify-center rounded-xl px-4 text-sm whitespace-nowrap transition duration-200 ease-out focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[#ead59c] sm:px-5;
+    }
+
+    /* "Start": the one call to action. Gold with a darker-gold ledge; lifts with a gold glow and a light sweep on hover, sinks on press. */
+    .header-cta {
+        @apply isolate overflow-hidden bg-secondary font-bold text-primary-hover;
+        box-shadow: 0 2px 0 0 var(--color-secondary-hover);
+    }
+    .header-cta::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background: linear-gradient(110deg, transparent 30%, rgb(255 255 255 / .5) 50%, transparent 70%);
+        transform: translateX(-120%);
+        transition: transform .7s ease;
+    }
+    .header-cta:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 0 0 var(--color-secondary-hover), 0 12px 28px -8px rgb(197 155 39 / .75);
+    }
+    .header-cta:hover::after { transform: translateX(120%); }
+    .header-cta:active {
+        transform: translateY(1px);
+        box-shadow: 0 1px 0 0 var(--color-secondary-hover), 0 4px 12px -6px rgb(197 155 39 / .6);
+    }
+
+    /* "Sign in" / "Sign out": a quieter maroon button, darker than the header with a light border. */
+    .header-button {
+        @apply border border-white/40 bg-primary-hover font-semibold text-white hover:border-white/70 hover:bg-[#4a1320] active:translate-y-px active:bg-[#2e0b12];
+    }
+    .login-input { @apply w-full rounded-xl border border-border bg-bg-light px-4 py-3 text-sm text-text-primary transition placeholder:text-text-muted/70 focus:border-secondary focus:bg-white focus:ring-4 focus:ring-secondary/20 focus:outline-none aria-invalid:border-red-500 aria-invalid:focus:ring-red-500/15; }
+    /* Inputs on the dark site footer (feedback form). */
+    .footer-input { @apply w-full rounded-xl border border-white/25 bg-white/5 px-4 py-2.5 text-sm text-white transition placeholder:text-white/55 focus:border-secondary focus:bg-white/10 focus:ring-4 focus:ring-secondary/20 focus:outline-none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+    .header-cta:hover, .header-cta:active, .header-button:active { transform: none; }
+    .header-cta::after { display: none; }
 }

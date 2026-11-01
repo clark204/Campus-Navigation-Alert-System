@@ -37,36 +37,4 @@
             </div>
         </div>
     </section>
-
-    {{-- Linked from registration errors ("contact the CNAS administrator") and the footer. --}}
-    <section id="contact" aria-labelledby="contact-heading" class="scroll-mt-20 bg-surface">
-        <div class="mx-auto grid max-w-7xl gap-8 px-5 py-14 sm:px-8 lg:grid-cols-[1fr_1.2fr] lg:items-center lg:px-12">
-            <div>
-                <p class="flex items-center gap-3 text-[10px] font-bold tracking-[.2em] text-secondary-hover">
-                    <span class="h-px w-9 bg-secondary"></span> NEED HELP?
-                </p>
-                <h2 id="contact-heading" class="mt-3 text-3xl font-semibold tracking-tight text-primary">Contact the CNAS administrator</h2>
-                <p class="mt-3 max-w-md text-sm leading-6 text-text-muted">
-                    Problems signing up, or someone already registered with your student ID? Get in touch and we'll sort it out.
-                </p>
-            </div>
-
-            <div class="rounded-2xl border border-border bg-bg-light p-6">
-                {{-- PLACEHOLDER: replace with the real CNAS administrator email and phone before launch. --}}
-                <p class="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-800">
-                    Placeholder contact details
-                </p>
-                <dl class="mt-4 grid gap-4 text-sm sm:grid-cols-2">
-                    <div>
-                        <dt class="text-xs font-semibold text-text-muted">Email</dt>
-                        <dd class="mt-1"><a href="mailto:cnas-admin@example.com" class="font-semibold text-primary underline-offset-4 hover:underline">cnas-admin@example.com</a></dd>
-                    </div>
-                    <div>
-                        <dt class="text-xs font-semibold text-text-muted">Phone</dt>
-                        <dd class="mt-1 font-semibold text-text-primary">(088) 000-0000</dd>
-                    </div>
-                </dl>
-            </div>
-        </div>
-    </section>
 @endsection

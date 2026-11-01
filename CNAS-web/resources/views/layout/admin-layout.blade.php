@@ -24,6 +24,8 @@
 
             <main id="main-content" class="flex-1 px-4 py-6 sm:px-8 sm:py-8 xl:px-10">
                 @yield('content.admin')
+
+                @include('partials.help-footer')
             </main>
         </div>
     </div>

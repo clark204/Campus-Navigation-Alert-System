@@ -12,19 +12,27 @@ use Illuminate\Validation\ValidationException;
  */
 class LoginService
 {
-    public const FAILED_MESSAGE = 'These credentials do not match our records.';
+    /**
+     * Deliberately generic: never reveals whether the email or school ID exists.
+     */
+    public const FAILED_MESSAGE = 'Invalid credentials.';
+
+    /**
+     * Shown under the password field (the web login marks both fields invalid).
+     */
+    public const FAILED_KEY = 'password';
 
     /**
      * Find the user by email (if the login contains "@") or school ID, and check the password.
      *
-     * @throws ValidationException (key "login") when the credentials are wrong.
+     * @throws ValidationException (key "password") when the credentials are wrong.
      */
     public function attempt(string $login, string $password): User
     {
         $user = $this->findByLogin($login);
 
         if ($user === null || ! Hash::check($password, $user->password)) {
-            throw ValidationException::withMessages(['login' => self::FAILED_MESSAGE]);
+            throw ValidationException::withMessages([self::FAILED_KEY => self::FAILED_MESSAGE]);
         }
 
         if (Hash::needsRehash($user->password)) {

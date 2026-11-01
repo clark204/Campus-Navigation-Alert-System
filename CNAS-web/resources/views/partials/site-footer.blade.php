@@ -1,51 +1,45 @@
-@php
-    // Replace the # values with the college's actual page URLs.
-    $quickLinks = [
-        'Admissions' => '#',
-        'Academics' => '#',
-        'Sustainable Development Goals' => '#',
-        'News & updates' => '#',
-        'Events' => '#',
-        'Contact' => route('landing').'#contact',
-    ];
-    $externalLinks = ['CHED' => '#', 'Tagoloan LGU' => '#'];
-@endphp
-
-<footer class="relative isolate overflow-hidden bg-primary-hover text-white/80">
+{{-- id="contact": linked as #contact from pages that use this footer (e.g. the duplicate student ID message). --}}
+<footer id="contact" class="relative isolate overflow-hidden bg-primary-hover text-white/80">
     <img src="{{ asset('images/footer.jpg') }}" alt="" loading="lazy"
         class="absolute inset-0 -z-20 h-full w-full object-cover object-center">
     <div class="absolute inset-0 -z-10 bg-[#210c13]/90"></div>
 
-    <div class="mx-auto grid max-w-7xl gap-9 px-5 py-12 sm:grid-cols-2 sm:px-8 sm:py-16 lg:grid-cols-[1.2fr_1.15fr_1.15fr_.85fr] lg:gap-10">
-        <div>
+    <div class="mx-auto grid max-w-7xl gap-10 px-5 py-12 sm:grid-cols-2 sm:px-8 sm:py-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,22rem)] lg:gap-12">
+        <div class="max-w-md">
             <h2 class="text-base font-bold text-white">Tagoloan Community College</h2>
             <p class="mt-3 text-sm leading-6">A public higher education institution serving Tagoloan, Misamis Oriental — committed to accessible, relevant programs for students and communities.</p>
         </div>
 
-        <nav aria-label="Quick links">
-            <h2 class="footer-heading">QUICK LINKS</h2>
-            <ul class="grid gap-2 text-sm">
-                @foreach ($quickLinks as $label => $url)
-                    <li><a href="{{ $url }}" class="footer-link">{{ $label }}</a></li>
-                @endforeach
-            </ul>
-        </nav>
+        <section aria-labelledby="contact-heading">
+            <h2 id="contact-heading" class="text-base font-bold text-white">Contact the CNAS administrator</h2>
+            <p class="mt-3 text-sm leading-6">Problems signing up, or someone already registered with your student ID? Get in touch.</p>
+            <div class="mt-4">
+                @include('partials.contact-details', ['onDark' => true])
+            </div>
+        </section>
 
-        <div>
-            <h2 class="footer-heading">VISIT & SUPPORT</h2>
-            <address class="text-sm leading-6 not-italic">Tagoloan, Misamis Oriental,<br>Philippines</address>
-            <a href="{{ route('landing') }}#contact" class="footer-link mt-3 inline-block text-sm">Contact the college →</a>
-            <p class="mt-4 text-xs leading-5 text-white/50">We look forward to welcoming you to campus.</p>
-        </div>
+        <section aria-labelledby="feedback-heading" class="sm:col-span-2 sm:max-w-md lg:col-span-1 lg:max-w-none">
+            <h2 id="feedback-heading" class="text-base font-bold text-white">Concerns, suggestions &amp; feedback</h2>
 
-        <nav aria-label="External references">
-            <h2 class="footer-heading">EXTERNAL REFERENCES</h2>
-            <ul class="grid gap-2 text-sm">
-                @foreach ($externalLinks as $label => $url)
-                    <li><a href="{{ $url }}" class="footer-link">{{ $label }}</a></li>
-                @endforeach
-            </ul>
-        </nav>
+            {{-- Frontend only for now: sending the message by email comes later (route + mail). Until then the form does nothing. --}}
+            <form id="feedback" class="mt-4 grid gap-3" onsubmit="event.preventDefault()">
+                <div>
+                    <label for="feedback-email" class="mb-1.5 block text-xs font-semibold text-white/80">Email</label>
+                    <input id="feedback-email" name="email" type="email" required autocomplete="email" autocapitalize="none"
+                        spellcheck="false" placeholder="example@gmail.com" value="{{ auth()->user()?->email }}"
+                        class="footer-input">
+                </div>
+                <div>
+                    <label for="feedback-message" class="mb-1.5 block text-xs font-semibold text-white/80">Message</label>
+                    <textarea id="feedback-message" name="message" rows="3" required
+                        placeholder="Tell us what's on your mind" class="footer-input resize-y"></textarea>
+                </div>
+                <button type="submit"
+                    class="min-h-11 justify-self-start rounded-xl bg-secondary px-6 text-sm font-bold text-primary-hover shadow-lg transition hover:bg-secondary-hover hover:text-white active:translate-y-px">
+                    Send
+                </button>
+            </form>
+        </section>
     </div>
 
     <div class="border-t border-white/15">

@@ -62,13 +62,21 @@
         @endforeach
     </nav>
 
-    <div class="border-t border-white/10 p-3">
-        <a href="{{ route('landing') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition hover:bg-white/5 hover:text-white">
+    {{-- The landing page is for guests only (signed-in users are redirected), so link the public map and help instead. --}}
+    <div class="grid gap-1 border-t border-white/10 p-3">
+        <a href="{{ route('navigate') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition hover:bg-white/5 hover:text-white">
             <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
                 stroke-linejoin="round" aria-hidden="true">
-                <path d="M14 4h6v6m0-6-9 9m-2-8H5a1 1 0 0 0-1 1v13a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1v-4" />
+                <path d="M9 4 3 6.5V20l6-2.5 6 2.5 6-2.5V4l-6 2.5zm0 0v13.5m6-11V20" />
             </svg>
-            View public site
+            Campus map
+        </a>
+        <a href="#contact" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition hover:bg-white/5 hover:text-white">
+            <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+                stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9.5a2.5 2.5 0 1 1 3.4 2.3c-.6.3-.9.8-.9 1.4v.3M12 17h.01" />
+            </svg>
+            Help &amp; contact
         </a>
     </div>
 </aside>

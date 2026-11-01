@@ -10,15 +10,16 @@ enum UserRole: string
     case Student = 'student';
 
     /**
-     * Named route an approved user lands on after signing in.
+     * Named route a signed-in user lands on (after signing in, and when opening a guest page).
+     * Never a guest-only route such as 'landing', or the guest middleware would redirect in a loop.
      */
     public function homeRoute(): string
     {
         return match ($this) {
             self::Admin => 'admin.dashboard',
-            self::Faculty => 'faculty.dashboard',
+            // Staff share the faculty portal until they get their own.
+            self::Faculty, self::Staff => 'faculty.dashboard',
             self::Student => 'student.dashboard',
-            self::Staff => 'landing',
         };
     }
 }

@@ -125,7 +125,8 @@ class RegistrationTest extends TestCase
             ->post(route('register.cor'), ['cor' => CorFixture::upload(), 'consent' => '1'])
             ->assertOk()
             ->assertSee(e(self::DUPLICATE_MESSAGE), false)
-            ->assertSee('href="'.route('landing').'#contact"', false);
+            ->assertSee('<a href="#contact"', false)
+            ->assertSee('<footer id="contact"', false);
 
         $this->assertSame(0, RegistrationDraft::count());
     }
