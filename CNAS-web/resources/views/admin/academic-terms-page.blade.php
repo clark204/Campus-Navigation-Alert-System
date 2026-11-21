@@ -10,10 +10,6 @@
             <p class="mt-1 text-sm text-text-muted">Students can only register with a COR for the current term.</p>
         </div>
 
-        @if (session('status'))
-            <p role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</p>
-        @endif
-
         <section aria-labelledby="current-heading" class="rounded-2xl border border-border bg-surface p-5">
             <h2 id="current-heading" class="text-xs font-semibold text-text-muted">Current term</h2>
             @if ($currentTerm)

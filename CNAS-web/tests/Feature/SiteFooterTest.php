@@ -9,8 +9,9 @@ use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /**
- * Site footer (#contact): CNAS contact details from config/cnas.php and the feedback form.
- * The portal and admin help footers show the same details.
+ * Site footer (#contact): CNAS contact details (config/cnas.php until the admin saves them, see
+ * Admin\ContactDetailsTest) and the feedback form.
+ * The portal's Help & contact page shows the same details (the admin console has none).
  */
 class SiteFooterTest extends TestCase
 {
@@ -25,6 +26,7 @@ class SiteFooterTest extends TestCase
             'email' => 'help@test.example',
             'phone' => '+63 912-345-678',
             'facebook' => 'https://www.facebook.com/test-page',
+            'address' => 'Tagoloan, Misamis Oriental, Philippines',
         ]]);
     }
 
@@ -68,12 +70,11 @@ class SiteFooterTest extends TestCase
     {
         $this->get(route('landing'))
             ->assertOk()
-            ->assertSeeInOrder(['<footer id="contact"', 'Concerns, suggestions &amp; feedback', '<form id="feedback"', '</footer>'], false)
-            ->assertSee('onsubmit="event.preventDefault()"', false)
+            ->assertSeeInOrder(['<footer id="contact"', 'Concerns, suggestions &amp; feedback', '<form id="feedback" method="POST" action="'.route('concerns.store').'"', '</footer>'], false)
             ->assertSee('placeholder="example@gmail.com" value=""', false)
             ->assertSee('<textarea id="feedback-message" name="message" rows="3" required', false)
             ->assertSee('placeholder="Tell us what\'s on your mind"', false)
-            ->assertSeeInOrder(['name="email" type="email" required', 'name="message"', '<button type="submit"', 'Send', '</form>'], false)
+            ->assertSeeInOrder(['name="email" type="email" required', 'name="topic"', 'name="message"', '<button type="submit"', 'Send', '</form>'], false)
             ->assertDontSee('QUICK LINKS')
             ->assertDontSee('EXTERNAL REFERENCES');
     }
@@ -85,15 +86,29 @@ class SiteFooterTest extends TestCase
         $this->view('partials.site-footer')->assertSee('placeholder="example@gmail.com" value="juan@tcc.edu.ph"', false);
     }
 
-    public function test_portal_and_admin_help_footers_show_the_same_contact_details(): void
+    public function test_the_portal_help_page_shows_the_same_contact_details(): void
     {
-        $portal = $this->get(route('student.dashboard'))->assertOk()->assertSee('id="contact"', false);
-        $this->assertContactDetailsFromConfig($portal);
+        $help = $this->actingAs(User::factory()->create(['role' => UserRole::Student]))
+            ->get(route('student.help'))
+            ->assertOk();
+        $this->assertContactDetailsFromConfig($help);
+    }
 
-        $admin = $this->actingAs(User::factory()->create(['role' => UserRole::Admin]))
+    public function test_portal_pages_no_longer_carry_a_help_footer(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => UserRole::Student]))
+            ->get(route('student.dashboard'))
+            ->assertOk()
+            ->assertDontSee('id="contact"', false)
+            ->assertDontSee('href="#contact"', false)
+            ->assertDontSee('action="'.route('concerns.store').'"', false);
+    }
+
+    public function test_the_admin_console_has_no_help_page_link(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => UserRole::Admin]))
             ->get(route('admin.dashboard'))
             ->assertOk()
-            ->assertSee('id="contact"', false);
-        $this->assertContactDetailsFromConfig($admin);
+            ->assertDontSee('Help &amp; contact', false);
     }
 }

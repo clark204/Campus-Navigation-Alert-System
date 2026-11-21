@@ -35,7 +35,7 @@ class CorValidator
             CorCheck::TotalUnits->value => $this->totalUnitsMatch($cor),
             CorCheck::DateEnrolled->value => $cor->dateEnrolled !== null,
             CorCheck::CopiesMatch->value => $this->copiesMatch($cor->copies),
-            CorCheck::KnownProgram->value => $cor->collegeId !== null,
+            CorCheck::KnownProgram->value => $cor->programCode !== null,
         ];
 
         return array_values(array_map(

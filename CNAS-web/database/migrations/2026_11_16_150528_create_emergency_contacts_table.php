@@ -1,0 +1,32 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Emergency numbers on the portal home and /api/emergency-contacts. A contact without a phone stays hidden.
+     */
+    public function up(): void
+    {
+        Schema::create('emergency_contacts', function (Blueprint $table) {
+            $table->id();
+            $table->string('name', 100);
+            $table->string('phone', 30)->nullable();
+            $table->string('note', 60)->nullable();
+            $table->unsignedInteger('position')->default(0)->index();
+            $table->boolean('is_visible')->default(false);
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('emergency_contacts');
+    }
+};

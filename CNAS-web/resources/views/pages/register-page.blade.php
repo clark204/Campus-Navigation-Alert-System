@@ -42,6 +42,15 @@
                     Tagoloan Community College for this term. The file is deleted as soon as it has been read. We keep only
                     your student ID, name, college and email.
                 </p>
+                <p class="mt-1">
+                    Your COR also lists your classes. On the next step you choose whether to save them (subject, section,
+                    day, time and room) as your class schedule. Only you can see your schedule, and you can change or
+                    delete it at any time.
+                </p>
+                <p class="mt-1">
+                    Each time you sign in, we record the time, your IP address and your device (for example "Chrome on
+                    Android") for security. These records are kept for {{ App\Models\LoginActivity::RETENTION_DAYS }} days.
+                </p>
             </div>
 
             <div>

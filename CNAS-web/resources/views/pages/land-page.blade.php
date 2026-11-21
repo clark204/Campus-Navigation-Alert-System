@@ -21,7 +21,7 @@
                     From your first class to your next destination, feel at home at Tagoloan Community College.
                     Get to know the places that connect our campus.
                 </p>
-                <a href="{{ Route::has('navigation.index') ? route('navigation.index') : '#' }}"
+                <a href="{{ Route::has('navigate') ? route('navigate') : '#' }}"
                     class="mt-8 inline-flex items-center gap-6 rounded-xl bg-secondary px-6 py-3.5 text-sm font-bold text-primary-hover shadow-lg transition hover:bg-secondary-hover hover:text-white">
                     Explore the campus <span aria-hidden="true">→</span>
                 </a>
@@ -29,6 +29,10 @@
                 <div class="mt-9 flex flex-wrap gap-x-6 gap-y-3 border-t border-white/15 pt-5 text-xs text-white/70">
                     <span>⌖ Tagoloan, Misamis Oriental</span>
                     <span>For students, faculty & visitors</span>
+                </div>
+
+                <div class="mt-6">
+                    @include('partials.push-alerts', ['variant' => 'hero'])
                 </div>
             </div>
 

@@ -8,8 +8,8 @@ use Illuminate\Database\Seeder;
 /**
  * Program codes exactly as printed after "Program :" on the COR.
  * Only BSIT is confirmed from a real COR; the others are placeholders to check
- * against real CORs. A code missing here doesn't block registration: the
- * student picks their college by hand and the account is flagged for review.
+ * against real CORs. A COR whose program is missing here is rejected (known-program check), so every program
+ * must be listed before registration opens.
  */
 class ProgramSeeder extends Seeder
 {

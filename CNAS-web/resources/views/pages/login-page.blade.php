@@ -41,11 +41,7 @@
                 <h2 class="mt-2 text-2xl font-semibold tracking-tight text-text-primary">Sign in</h2>
                 <p class="mt-2 text-sm text-text-muted">Use your school ID number or email address.</p>
 
-                @if (session('status'))
-                    <p role="status" class="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</p>
-                @endif
-
-                <form method="POST" action="{{ route('login.store') }}" class="mt-8 space-y-5" novalidate data-clear-errors>
+                <form method="POST" action="{{ route('login.store') }}" class="mt-8 space-y-5" novalidate data-clear-errors data-submit-once>
                     @csrf
 
                     <div>
@@ -54,13 +50,23 @@
                             spellcheck="false" required placeholder="e.g. 20240001 or example@gmail.com"
                             value="{{ old('login') }}" class="login-input"
                             @if ($loginErrorId) aria-invalid="true" aria-describedby="{{ $loginErrorId }}" @endif>
-                        @error('login') <p id="login-error" data-error-for="login" class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        @error('login')
+                            <p id="login-error" data-error-for="login" class="mt-1 text-xs text-red-600">
+                                {{-- Too many tries: the wait counts down live (resources/js/retry-countdown.js). --}}
+                                @if (session('throttle.key') === 'login')
+                                    {{ session('throttle.message') }}
+                                    <span data-retry-countdown="{{ session('throttle.seconds') }}">Please try again in {{ session('throttle.seconds') }} seconds.</span>
+                                @else
+                                    {{ $message }}
+                                @endif
+                            </p>
+                        @enderror
                     </div>
 
                     <div>
                         <div class="mb-2 flex items-center justify-between">
                             <label for="password" class="text-xs font-semibold text-text-primary">Password</label>
-                            <a href="#" class="text-xs font-semibold text-primary underline-offset-4 hover:underline">Forgot password?</a>
+                            <a href="{{ route('password.request') }}" class="text-xs font-semibold text-primary underline-offset-4 hover:underline">Forgot password?</a>
                         </div>
                         <div class="relative">
                             <input id="password" name="password" type="password" autocomplete="current-password" required
@@ -88,9 +94,11 @@
                         Keep me signed in
                     </label>
 
-                    <button type="submit"
-                        class="flex w-full items-center justify-center gap-4 rounded-xl bg-primary px-6 py-3.5 text-sm font-bold text-white shadow-lg transition hover:bg-primary-hover">
-                        Sign in <span aria-hidden="true">→</span>
+                    {{-- data-submit-once shows the spinner and "Signing in…" while the request runs. --}}
+                    <button type="submit" data-loading-text="Signing in…"
+                        class="flex w-full items-center justify-center gap-2.5 rounded-xl bg-primary px-6 py-3.5 text-sm font-bold text-white shadow-lg transition hover:bg-primary-hover disabled:cursor-wait disabled:bg-primary-hover">
+                        <span data-submit-spinner hidden class="size-4 animate-spin rounded-full border-2 border-white/35 border-t-white motion-reduce:animate-none" aria-hidden="true"></span>
+                        <span data-submit-label>Sign in</span>
                     </button>
                 </form>
 

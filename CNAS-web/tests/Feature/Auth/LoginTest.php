@@ -6,11 +6,37 @@ use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class LoginTest extends TestCase
 {
     use RefreshDatabase;
+
+    /**
+     * @return array<string, array{UserRole, string, string}>
+     */
+    public static function rolesThatFirstTriedAnotherPage(): array
+    {
+        return [
+            'student who tried the admin console' => [UserRole::Student, 'admin.dashboard', 'student.dashboard'],
+            'faculty who tried the student portal' => [UserRole::Faculty, 'student.dashboard', 'faculty.dashboard'],
+            'staff who tried an admin page' => [UserRole::Staff, 'admin.academic-terms.index', 'faculty.dashboard'],
+            'admin who tried the faculty portal' => [UserRole::Admin, 'faculty.dashboard', 'admin.dashboard'],
+            'admin who tried another admin page' => [UserRole::Admin, 'admin.academic-terms.index', 'admin.dashboard'],
+        ];
+    }
+
+    #[DataProvider('rolesThatFirstTriedAnotherPage')]
+    public function test_signing_in_always_lands_on_the_roles_own_dashboard(UserRole $role, string $triedRoute, string $home): void
+    {
+        User::factory()->create(['school_id' => '20240001', 'role' => $role]);
+
+        $this->get(route($triedRoute))->assertRedirect(route('login'));
+
+        $this->post(route('login.store'), ['login' => '20240001', 'password' => 'password'])
+            ->assertRedirect(route($home));
+    }
 
     public function test_a_student_signs_in_with_their_school_id(): void
     {
@@ -114,5 +140,11 @@ class LoginTest extends TestCase
         $this->post(route('login.store'), ['login' => '20240001', 'password' => 'wrong'])
             ->assertSessionHasErrors('login');
         $this->assertStringStartsWith('Too many sign-in attempts.', session('errors')->first('login'));
+
+        // Back on the page, the wait counts down live from the flashed seconds.
+        $page = $this->from(route('login'))->followingRedirects()
+            ->post(route('login.store'), ['login' => '20240001', 'password' => 'wrong'])
+            ->assertSee('Too many sign-in attempts.');
+        $this->assertMatchesRegularExpression('/data-retry-countdown="\d+">Please try again in \d+ seconds\.</', $page->getContent());
     }
 }

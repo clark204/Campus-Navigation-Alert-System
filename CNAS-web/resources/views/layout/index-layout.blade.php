@@ -7,13 +7,16 @@
     <meta name="theme-color" content="#581825">
     <meta name="description" content="@yield('description', 'Get to know Tagoloan Community College and find your way around campus with TCC NAV.')">
     <title>@yield('title', 'TCC NAV')</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @include('partials.app-head')
+    @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/alerts/index.js'])
     @stack('styles.index')
 </head>
 
 <body id="top" class="bg-bg-light font-sans text-text-primary antialiased">
     <a href="#main-content"
         class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-white focus:p-4">Skip to content</a>
+
+    @include('partials.alerts')
 
     @include('partials.site-header')
 
@@ -22,6 +25,8 @@
     </main>
 
     @include('partials.site-footer')
+
+    @include('partials.toasts')
 
     @stack('scripts.index')
 </body>

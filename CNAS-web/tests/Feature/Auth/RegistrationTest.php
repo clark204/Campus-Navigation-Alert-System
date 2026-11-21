@@ -2,8 +2,10 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Enums\EmailCodePurpose;
 use App\Enums\Semester;
 use App\Enums\UserRole;
+use App\Mail\EmailCodeMail;
 use App\Models\AcademicTerm;
 use App\Models\RegistrationDraft;
 use App\Models\User;
@@ -11,6 +13,8 @@ use Database\Seeders\CollegeSeeder;
 use Database\Seeders\ProgramSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Tests\Support\CorFixture;
@@ -31,6 +35,9 @@ class RegistrationTest extends TestCase
     {
         parent::setUp();
 
+        // CORs are never meant to be kept; if a change ever stores one, it lands on this fake disk (and fails
+        // test_the_uploaded_cor_is_never_kept_in_storage) instead of piling up in storage/app/private.
+        Storage::fake('local');
         $this->seed([CollegeSeeder::class, ProgramSeeder::class]);
         AcademicTerm::factory()->term('2026-2027', Semester::First)->current()->create();
         $this->travelTo(now()->setDate(2026, 9, 1)->setTime(8, 0));
@@ -137,9 +144,9 @@ class RegistrationTest extends TestCase
 
         $response = $this->get(route('register.confirm'))
             ->assertOk()
-            ->assertSeeInOrder(['COR verified', 'Juan Miguel S. Dela Cruz', '20240001', 'College of Information Technology'])
+            ->assertSeeInOrder(['COR verified', 'Juan Miguel S. Dela Cruz', '20240001', 'College of Information Technology', 'Bachelor of Science in Information Technology'])
             ->assertDontSee('name="student_id"', false)
-            ->assertDontSee('name="college_id"', false)
+            ->assertDontSee('name="program_code"', false)
             ->assertSee('value="Juan Miguel"', false)
             ->assertSee('value="Dela Cruz"', false)
             ->assertSee('name="email"', false)
@@ -150,6 +157,18 @@ class RegistrationTest extends TestCase
         $this->assertMatchesRegularExpression('/<details data-name-editor\s+class=/', $response->getContent());
     }
 
+    public function test_the_uploaded_cor_is_never_kept_in_storage(): void
+    {
+        $file = CorFixture::upload();
+        $path = $file->getPathname();
+
+        $this->uploadCor($file)->assertRedirect(route('register.confirm'));
+        $this->createAccount()->assertRedirect(route('email.verify'));
+
+        $this->assertFileDoesNotExist($path);
+        $this->assertSame([], Storage::disk('local')->allFiles());
+    }
+
     public function test_the_create_account_screen_needs_a_draft(): void
     {
         $this->get(route('register.confirm'))->assertRedirect(route('register'));
@@ -157,24 +176,28 @@ class RegistrationTest extends TestCase
 
     public function test_without_editing_the_name_the_parsers_split_is_used(): void
     {
+        Mail::fake();
         $this->uploadCor();
 
         $this->createAccount()
-            ->assertRedirect(route('login'))
-            ->assertSessionHas('status', 'Account created. You can now sign in.')
+            ->assertRedirect(route('email.verify'))
+            ->assertSessionHas('status', 'Account created. We sent a 6-digit code to juan@tcc.edu.ph.')
             ->assertSessionMissing('registration.draft_token');
 
         $user = User::sole();
-        $this->assertSame(['20240001', 'C01'], [$user->school_id, $user->college_id]);
+        $this->assertSame(['20240001', 'BSIT'], [$user->school_id, $user->program_code]);
         $this->assertSame(['Juan Miguel', 'S', 'Dela Cruz'], [$user->first_name, $user->middle_name, $user->last_name]);
         $this->assertSame('juan@tcc.edu.ph', $user->email);
         $this->assertSame(UserRole::Student, $user->role);
         $this->assertNotNull($user->verified_at);
         $this->assertSame(0, RegistrationDraft::count());
 
-        // Active right away: the new student can sign in.
-        $this->post(route('login.store'), ['login' => '20240001', 'password' => 'secret123'])
-            ->assertRedirect(route('student.dashboard'));
+        // Signed in right away, on "Verify your email" with a code on its way (tests/Feature/Auth/EmailVerificationTest.php).
+        $this->assertAuthenticatedAs($user);
+        $this->assertNull($user->email_verified_at);
+        Mail::assertQueued(EmailCodeMail::class, fn (EmailCodeMail $mail) => $mail->hasTo('juan@tcc.edu.ph')
+            && $mail->purpose === EmailCodePurpose::VerifyEmail);
+        $this->get(route('student.dashboard'))->assertRedirect(route('email.verify'));
     }
 
     public function test_an_edited_re_split_name_is_accepted(): void
@@ -182,7 +205,7 @@ class RegistrationTest extends TestCase
         $this->uploadCor();
 
         $this->createAccount(['first_name' => 'Juan', 'middle_name' => 'Santos', 'last_name' => 'Miguel Dela Cruz'])
-            ->assertRedirect(route('login'));
+            ->assertRedirect(route('email.verify'));
 
         $user = User::sole();
         $this->assertSame(['Juan', 'Santos', 'Miguel Dela Cruz'], [$user->first_name, $user->middle_name, $user->last_name]);
@@ -216,13 +239,13 @@ class RegistrationTest extends TestCase
         $this->assertMatchesRegularExpression('/<details data-name-editor\s+open\s+class=/', $response->getContent());
     }
 
-    public function test_student_id_and_college_in_the_request_are_ignored(): void
+    public function test_student_id_and_program_in_the_request_are_ignored(): void
     {
         $this->uploadCor();
-        $this->createAccount(['student_id' => '20249999', 'college_id' => 'C02']);
+        $this->createAccount(['student_id' => '20249999', 'program_code' => 'BSM']);
 
         $user = User::sole();
-        $this->assertSame(['20240001', 'C01'], [$user->school_id, $user->college_id]);
+        $this->assertSame(['20240001', 'BSIT'], [$user->school_id, $user->program_code]);
     }
 
     public function test_a_student_id_registered_before_the_last_step_restarts_the_flow(): void
@@ -262,9 +285,9 @@ class RegistrationTest extends TestCase
         $this->uploadCor();
         $key = (string) Str::uuid();
 
-        $this->createAccount(['idempotency_key' => $key])->assertRedirect(route('login'));
+        $this->createAccount(['idempotency_key' => $key])->assertRedirect(route('email.verify'));
         $this->createAccount(['idempotency_key' => $key])
-            ->assertRedirect(route('login'))
+            ->assertRedirect(route('email.verify'))
             ->assertSessionHasNoErrors();
 
         $this->assertSame(1, User::count());

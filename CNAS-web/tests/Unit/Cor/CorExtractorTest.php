@@ -13,7 +13,7 @@ use Tests\Support\CorFixture;
 use Tests\TestCase;
 
 /**
- * Uses the framework TestCase because the program → college lookup reads the programs table.
+ * Uses the framework TestCase because the program lookup reads the programs table.
  */
 class CorExtractorTest extends TestCase
 {
@@ -38,7 +38,7 @@ class CorExtractorTest extends TestCase
             'student_id' => $cor->studentId,
             'name' => $cor->fullName,
             'program' => $cor->program,
-            'college_id' => $cor->collegeId,
+            'program_code' => $cor->programCode,
             'academic_year' => $cor->academicYear,
             'semester' => $cor->semester,
             'date_enrolled' => $cor->dateEnrolled,
@@ -59,7 +59,7 @@ class CorExtractorTest extends TestCase
             'student_id' => '20240001',
             'name' => 'Juan Miguel Dela Cruz S',
             'program' => 'BSIT',
-            'college_id' => 'C01',
+            'program_code' => 'BSIT',
             'academic_year' => '2026-2027',
             'semester' => Semester::First,
             'date_enrolled' => '2026-07-08',
@@ -74,7 +74,7 @@ class CorExtractorTest extends TestCase
                 'student_id' => '20230002',
                 'name' => 'Maria Clara Santos R',
                 'program' => 'BSIT',
-                'college_id' => 'C01',
+                'program_code' => 'BSIT',
                 'academic_year' => '2025-2026',
                 'semester' => Semester::Second,
                 'date_enrolled' => '2026-01-07',
@@ -127,12 +127,12 @@ class CorExtractorTest extends TestCase
         }
     }
 
-    public function test_an_unknown_program_has_no_college(): void
+    public function test_an_unknown_program_has_no_program_code(): void
     {
         $cor = (new CorExtractor)->parseText(CorFixture::tampered('Program : BSIT', 'Program : BSXYZ'));
 
         $this->assertSame('BSXYZ', $cor->program);
-        $this->assertNull($cor->collegeId);
+        $this->assertNull($cor->programCode);
     }
 
     public function test_an_impossible_date_is_not_a_date(): void

@@ -5,7 +5,8 @@ namespace App\Http\Requests\Registration;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Web step 2: email and password, plus the name fields if the student opened "Edit name".
+ * Web step 2: email and password, plus the name fields if the student opened "Edit name" and the
+ * "Also save my class schedule" checkbox.
  */
 class CreateAccountRequest extends FormRequest
 {
@@ -16,6 +17,6 @@ class CreateAccountRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [...$this->nameRules(), ...$this->accountRules()];
+        return [...$this->nameRules(), ...$this->accountRules(), ...$this->scheduleRules()];
     }
 }

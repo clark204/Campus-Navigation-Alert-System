@@ -16,6 +16,21 @@
     --color-bg-light: #FAF8F5;
     --color-surface: #FFFFFF;
     --color-border: #E5E0DB;
+
+    /* Emergency alerts: a signal red that can't be mistaken for the brand maroon, the evacuation green,
+       and hazard-tape amber for drills. */
+    --color-alarm: #B3121B;
+    --color-alarm-deep: #7A0A10;
+    --color-safe: #0F6B3A;
+    --color-safe-tint: #E3F1E6;
+    --color-hazard: #F2B705;
+
+    /* The alarm takeover's background slowly pulses between the two reds (off with reduced motion). */
+    --animate-beacon: beacon 1.6s ease-in-out infinite;
+    @keyframes beacon {
+        0%, 100% { background-color: var(--color-alarm); }
+        50% { background-color: var(--color-alarm-deep); }
+    }
 }
 
 @layer base {
@@ -58,12 +73,96 @@
         @apply border border-white/40 bg-primary-hover font-semibold text-white hover:border-white/70 hover:bg-[#4a1320] active:translate-y-px active:bg-[#2e0b12];
     }
     .login-input { @apply w-full rounded-xl border border-border bg-bg-light px-4 py-3 text-sm text-text-primary transition placeholder:text-text-muted/70 focus:border-secondary focus:bg-white focus:ring-4 focus:ring-secondary/20 focus:outline-none aria-invalid:border-red-500 aria-invalid:focus:ring-red-500/15; }
+    /* Drill marker: yellow and black hazard tape, as on real drill signage. */
+    .hazard-tape { background: repeating-linear-gradient(-45deg, var(--color-hazard) 0 14px, #1c1917 14px 28px); }
+    /* Toasts (partials/toasts, resources/js/toasts.js): bottom right, full width with a 16px gutter on phones. They are
+       popover="manual", so these rules replace the browser's centred popover box. In browsers without popover support
+       the same rules still place the toast. Several stack upwards: toasts.js sets --toast-offset (the height of the
+       toasts below it). */
+    .toast {
+        position: fixed;
+        inset: auto 1.5rem calc(1.5rem + var(--toast-offset, 0px)) auto;
+        width: min(24rem, calc(100vw - 2rem));
+        margin: 0;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 0.75rem;
+        align-items: start;
+        overflow: hidden;
+        padding: 0.875rem 0.875rem 1.125rem 1rem;
+        border: 1px solid var(--color-border);
+        border-radius: 1rem;
+        background: var(--color-surface);
+        color: var(--color-text-primary);
+        box-shadow: 0 18px 40px -16px rgb(61 15 24 / 0.38), 0 2px 6px rgb(0 0 0 / 0.06);
+        opacity: 1;
+        transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+
+        @starting-style { opacity: 0; }
+
+        @media (prefers-reduced-motion: no-preference) {
+            transform: translateY(0);
+            transition: opacity 0.25s ease-out, transform 0.25s ease-out, bottom 0.25s ease-out;
+            @starting-style { transform: translateY(1rem); }
+        }
+
+        /* A warning stays until closed (no timer bar), with a gold edge. */
+        &[data-tone="warning"] { border-color: color-mix(in srgb, var(--color-secondary) 55%, transparent); }
+
+        /* Closing (toasts.js removes it once this has played). */
+        &[data-closing] {
+            opacity: 0;
+            @media (prefers-reduced-motion: no-preference) { transform: translateY(0.5rem); }
+        }
+
+        @media (max-width: 639px) {
+            inset: auto 1rem calc(1rem + var(--toast-offset, 0px)) 1rem;
+            width: auto;
+        }
+    }
+    /* The time left before it closes: a gold bar that runs out, paused while the pointer or focus is on the toast. */
+    .toast-timer {
+        position: absolute;
+        inset: auto 0 0 0;
+        height: 3px;
+        background: var(--color-secondary);
+        transform-origin: left;
+        animation: toast-timer var(--toast-duration, 6s) linear forwards;
+    }
+    .toast:is(:hover, :focus-within) .toast-timer { animation-play-state: paused; }
+
     /* Inputs on the dark site footer (feedback form). */
     .footer-input { @apply w-full rounded-xl border border-white/25 bg-white/5 px-4 py-2.5 text-sm text-white transition placeholder:text-white/55 focus:border-secondary focus:bg-white/10 focus:ring-4 focus:ring-secondary/20 focus:outline-none; }
+}
+
+@keyframes toast-timer {
+    to { transform: scaleX(0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
     .header-cta:hover, .header-cta:active, .header-button:active { transform: none; }
     .header-cta::after { display: none; }
+}
+
+/* Navigation motion (resources/js/navigation/motion.js): the dot's pulse and the destination pin's drop. Both stop with
+   prefers-reduced-motion, and pause while the tab is hidden or a 360° photo is open (data-motion-paused). */
+@keyframes dot-pulse {
+    0% { transform: scale(1); opacity: 0.55; }
+    100% { transform: scale(3.4); opacity: 0; }
+}
+@keyframes pin-drop {
+    0% { transform: translateY(-16px); opacity: 0; }
+    60% { transform: translateY(2px); opacity: 1; }
+    100% { transform: translateY(0); }
+}
+.dot-pulse { animation: dot-pulse 1.8s ease-out infinite; }
+/* The route's flowing dashes (main.js updateFlow and the flow timer): their offset moves them toward the destination. */
+.route-flow-svg { position: absolute; overflow: visible; pointer-events: none; }
+.route-flow-svg path { fill: none; stroke: #ffffff; stroke-opacity: 0.9; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 6 10; }
+.pin-drop { animation: pin-drop 0.35s ease-out; }
+[data-motion-paused] .dot-pulse { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+    .dot-pulse, .route-flow-svg { display: none; }
+    .pin-drop { animation: none; }
 }

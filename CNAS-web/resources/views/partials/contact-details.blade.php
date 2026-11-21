@@ -1,8 +1,8 @@
-{{-- CNAS administrator contact details from config/cnas.php, one line each with an icon.
-     Used by the site footer (pass 'onDark' => true) and the portal/admin help footer. --}}
+{{-- CNAS administrator contact details, one line each with an icon. $contact comes from App\Services\ContactDetails
+     (AppServiceProvider view composer): what the admin saved on /admin/settings, else config/cnas.php.
+     Used by the site footer (pass 'onDark' => true) and the portal Help & contact page. --}}
 @php
-    $contact = config('cnas.contact');
-    $phoneHref = 'tel:'.preg_replace('/[^\d+]/', '', $contact['phone']);
+    $phoneHref = \App\Services\ContactDetails::telHref($contact['phone']);
     $onDark ??= false;
     $iconClass = $onDark ? 'text-secondary' : 'text-secondary-hover';
     $linkClass = $onDark
@@ -42,6 +42,6 @@
             <path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" />
             <circle cx="12" cy="9.5" r="2.5" />
         </svg>
-        <address class="not-italic {{ $textClass }}">Tagoloan, Misamis Oriental, Philippines</address>
+        <address class="not-italic {{ $textClass }}">{{ $contact['address'] }}</address>
     </li>
 </ul>

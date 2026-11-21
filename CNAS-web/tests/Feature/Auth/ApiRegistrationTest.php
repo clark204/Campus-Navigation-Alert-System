@@ -4,6 +4,7 @@ namespace Tests\Feature\Auth;
 
 use App\Enums\Semester;
 use App\Enums\UserRole;
+use App\Mail\EmailCodeMail;
 use App\Models\AcademicTerm;
 use App\Models\College;
 use App\Models\RegistrationDraft;
@@ -14,6 +15,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -28,6 +30,9 @@ class ApiRegistrationTest extends TestCase
     {
         parent::setUp();
 
+        // CORs are never meant to be kept; if a change ever stores one, it lands on this fake disk (and fails
+        // test_the_pdf_is_deleted_right_after_it_is_read) instead of piling up in storage/app/private.
+        Storage::fake('local');
         $this->seed([CollegeSeeder::class, ProgramSeeder::class]);
         AcademicTerm::factory()->term('2026-2027', Semester::First)->current()->create();
         $this->travelTo(now()->setDate(2026, 9, 1)->setTime(8, 0));
@@ -63,13 +68,15 @@ class ApiRegistrationTest extends TestCase
         $response = $this->uploadCor();
 
         $response->assertOk()->assertExactJsonStructure([
-            'draft_token', 'student_id', 'first_name', 'middle_name', 'last_name', 'college_id',
+            'draft_token', 'student_id', 'first_name', 'middle_name', 'last_name', 'program_code', 'program_name', 'college_id',
         ]);
         $response->assertJson([
             'student_id' => '20240001',
             'first_name' => 'Juan Miguel',
             'middle_name' => 'S',
             'last_name' => 'Dela Cruz',
+            'program_code' => 'BSIT',
+            'program_name' => 'Bachelor of Science in Information Technology',
             'college_id' => 'C01',
         ]);
         $response->assertCookieMissing(config('session.cookie'));
@@ -80,8 +87,8 @@ class ApiRegistrationTest extends TestCase
         $draft = RegistrationDraft::sole();
         $this->assertSame(hash('sha256', $token), $draft->token_hash);
         $this->assertEquals(now()->addMinutes(30), $draft->expires_at);
-        // Only identity fields are kept, nothing about the schedule or units.
-        $this->assertSame(['student_id', 'full_name', 'first_name', 'middle_name', 'last_name', 'college_id'], array_keys($draft->data));
+        // Only identity fields, the term and the class meetings are kept, nothing about units or fees.
+        $this->assertSame(['student_id', 'full_name', 'first_name', 'middle_name', 'last_name', 'program_code', 'academic_term_id', 'meetings'], array_keys($draft->data));
     }
 
     public function test_the_pdf_is_deleted_right_after_it_is_read(): void
@@ -230,6 +237,7 @@ class ApiRegistrationTest extends TestCase
 
     public function test_completing_a_draft_creates_an_active_student(): void
     {
+        Mail::fake();
         $token = $this->draftToken();
 
         $response = $this->postJson(route('api.register'), $this->accountPayload($token));
@@ -242,26 +250,31 @@ class ApiRegistrationTest extends TestCase
             'middle_name' => 'S',
             'last_name' => 'Dela Cruz',
             'email' => 'juan@tcc.edu.ph',
+            'email_verified' => false,
+            'must_change_password' => false,
             'role' => 'student',
             'college' => ['id' => 'C01', 'name' => College::find('C01')->name],
+            'program' => ['code' => 'BSIT', 'name' => 'Bachelor of Science in Information Technology'],
         ]);
 
         $this->assertSame(UserRole::Student, $user->role);
         $this->assertEquals(now(), $user->verified_at);
         $this->assertTrue(Hash::check('secret123', $user->password));
         $this->assertSame(0, RegistrationDraft::count());
+        // The app shows its verify screen (email_verified false); the code is already on its way.
+        Mail::assertQueued(EmailCodeMail::class, fn (EmailCodeMail $mail) => $mail->hasTo('juan@tcc.edu.ph'));
     }
 
-    public function test_student_id_college_and_role_cannot_be_set_by_the_client(): void
+    public function test_student_id_program_and_role_cannot_be_set_by_the_client(): void
     {
         $token = $this->draftToken();
 
         $this->postJson(route('api.register'), $this->accountPayload($token, [
-            'student_id' => '20249999', 'school_id' => '20249999', 'college_id' => 'C02', 'role' => 'admin',
+            'student_id' => '20249999', 'school_id' => '20249999', 'program_code' => 'BSM', 'role' => 'admin',
         ]))->assertCreated();
 
         $user = User::sole();
-        $this->assertSame(['20240001', 'C01', UserRole::Student], [$user->school_id, $user->college_id, $user->role]);
+        $this->assertSame(['20240001', 'BSIT', UserRole::Student], [$user->school_id, $user->program_code, $user->role]);
     }
 
     public function test_without_name_fields_the_parsers_split_is_used(): void

@@ -35,6 +35,14 @@ class UserFactory extends Factory
     }
 
     /**
+     * Trusted by the admin to send emergency alerts (only faculty and staff count as trusted: User::canSendAlerts).
+     */
+    public function trustedForAlerts(): static
+    {
+        return $this->state(fn () => ['alert_trusted_at' => now()]);
+    }
+
+    /**
      * Indicate that the model's email address should be unverified.
      */
     public function unverified(): static

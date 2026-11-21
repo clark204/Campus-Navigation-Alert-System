@@ -20,6 +20,8 @@
 /public/storage
 /storage/*.key
 /storage/pail
+# 360° photo copies (php artisan panoramas:import / admin uploads); the originals are never stored in the repo.
+/storage/app/public/panoramas
 /vendor
 _ide_helper.php
 Homestead.json

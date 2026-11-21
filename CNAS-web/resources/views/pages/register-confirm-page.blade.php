@@ -34,6 +34,10 @@
                     <dt class="text-xs text-text-muted">College</dt>
                     <dd class="font-semibold text-text-primary">{{ $collegeName }}</dd>
                 </div>
+                <div class="sm:col-span-2">
+                    <dt class="text-xs text-text-muted">Program</dt>
+                    <dd class="font-semibold text-text-primary">{{ $programName }}</dd>
+                </div>
             </dl>
 
             {{-- Closed: the fields are disabled (by app.js) and not sent, so the parser's split is used. --}}
@@ -99,6 +103,19 @@
         </div>
 
         <p class="-mt-1 text-xs text-text-muted">At least 8 characters, with letters and numbers.</p>
+
+        @if ($meetingCount > 0)
+            {{-- Ticked by default; after a failed submit it keeps what the student chose. --}}
+            <label class="flex items-start gap-2.5 text-xs text-text-muted">
+                <input type="checkbox" name="save_schedule" value="1" @checked($errors->isEmpty() || old('save_schedule'))
+                    class="mt-0.5 size-4 rounded accent-primary">
+                <span>
+                    <span class="font-semibold text-text-primary">Also save my class schedule</span><br>
+                    The {{ $meetingCount }} class meetings on your COR (subject, day, time and room) go to "My schedule",
+                    where you can change or delete them.
+                </span>
+            </label>
+        @endif
 
         <button type="submit"
             class="mt-2 flex w-full items-center justify-center gap-4 rounded-xl bg-primary px-6 py-3.5 text-sm font-bold text-white shadow-lg transition hover:bg-primary-hover disabled:cursor-wait disabled:opacity-70">

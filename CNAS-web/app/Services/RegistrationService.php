@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\EmailCodePurpose;
 use App\Enums\UserRole;
 use App\Models\AcademicTerm;
 use App\Models\RegistrationDraft;
@@ -10,6 +11,7 @@ use App\Services\Cor\CorCheck;
 use App\Services\Cor\CorExtractor;
 use App\Services\Cor\CorParseException;
 use App\Services\Cor\CorValidator;
+use App\Services\Cor\ParsedCor;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -23,10 +25,11 @@ use Illuminate\Validation\ValidationException;
  * COR-based student registration, shared by the web flow and the API.
  *
  * 1. startFromCor(): the COR is read, checked against the current term, and deleted.
- *    Only the student's identity is kept, in a 30-minute draft; the caller gets the
- *    details plus a draft token.
+ *    Only the student's identity and class meetings are kept, in a 30-minute draft; the
+ *    caller gets the details plus a draft token.
  * 2. complete(): the student's name split, email and password become an active student
- *    account. Student ID and college always come from the COR, never from the request.
+ *    account. Student ID and program always come from the COR, never from the request.
+ *    A verification code is emailed right away (EmailCodes); portal pages wait until it is entered.
  */
 class RegistrationService
 {
@@ -66,6 +69,8 @@ class RegistrationService
     public function __construct(
         private CorExtractor $extractor,
         private CorValidator $validator,
+        private ClassSchedules $schedules,
+        private EmailCodes $emailCodes,
     ) {}
 
     /**
@@ -79,6 +84,41 @@ class RegistrationService
             throw ValidationException::withMessages(['cor' => self::CLOSED_MESSAGE]);
         }
 
+        $cor = $this->acceptCor($file, $term);
+
+        if (User::where('school_id', $cor->studentId)->exists()) {
+            $this->rejectCor(['duplicate_student_id'], self::DUPLICATE_STUDENT_ID_MESSAGE);
+        }
+
+        $token = Str::random(40);
+
+        $draft = new RegistrationDraft;
+        $draft->forceFill([
+            'token_hash' => RegistrationDraft::hashToken($token),
+            'data' => [
+                'student_id' => $cor->studentId,
+                'full_name' => $cor->fullName,
+                'first_name' => $cor->firstName,
+                'middle_name' => $cor->middleName,
+                'last_name' => $cor->lastName,
+                'program_code' => $cor->programCode,
+                'academic_term_id' => $term->id,
+                'meetings' => $cor->meetings(),
+            ],
+            'expires_at' => now()->addMinutes(self::DRAFT_TTL_MINUTES),
+        ])->save();
+
+        return new StartedRegistration($token, $draft);
+    }
+
+    /**
+     * Read an uploaded COR and check it against the term. The PDF is deleted as soon as it has been read.
+     * Also used by the portal's "Import from COR" (Portal\ClassScheduleImportController).
+     *
+     * @throws ValidationException (key "cor") when the file or the COR is not acceptable.
+     */
+    public function acceptCor(UploadedFile $file, AcademicTerm $term): ParsedCor
+    {
         Validator::make(['cor' => $file], ['cor' => self::COR_RULES], self::COR_MESSAGES)->validate();
 
         $path = $file->getRealPath();
@@ -103,27 +143,7 @@ class RegistrationService
             $this->rejectCor($failedNames, $this->wrongTermMessage($term));
         }
 
-        if (User::where('school_id', $cor->studentId)->exists()) {
-            $this->rejectCor(['duplicate_student_id'], self::DUPLICATE_STUDENT_ID_MESSAGE);
-        }
-
-        $token = Str::random(40);
-
-        $draft = new RegistrationDraft;
-        $draft->forceFill([
-            'token_hash' => RegistrationDraft::hashToken($token),
-            'data' => [
-                'student_id' => $cor->studentId,
-                'full_name' => $cor->fullName,
-                'first_name' => $cor->firstName,
-                'middle_name' => $cor->middleName,
-                'last_name' => $cor->lastName,
-                'college_id' => $cor->collegeId,
-            ],
-            'expires_at' => now()->addMinutes(self::DRAFT_TTL_MINUTES),
-        ])->save();
-
-        return new StartedRegistration($token, $draft);
+        return $cor;
     }
 
     /**
@@ -202,15 +222,16 @@ class RegistrationService
 
     /**
      * Create the active student account from a draft. Name fields are optional: any left out
-     * keep the parser's split.
+     * keep the parser's split. The COR's class schedule is saved with the account only
+     * when save_schedule is true: the student has to ask for it.
      *
-     * @param  array{first_name?: ?string, middle_name?: ?string, last_name?: ?string, email: string, password: string}  $data
+     * @param  array{first_name?: ?string, middle_name?: ?string, last_name?: ?string, email: string, password: string, save_schedule?: bool}  $data
      *
      * @throws ValidationException (keys "draft_token", "first_name", "student_id" or "email").
      */
     public function complete(string $draftToken, array $data): User
     {
-        return DB::transaction(function () use ($draftToken, $data) {
+        $user = DB::transaction(function () use ($draftToken, $data) {
             $draft = RegistrationDraft::active()
                 ->where('token_hash', RegistrationDraft::hashToken($draftToken))
                 ->lockForUpdate()
@@ -228,7 +249,7 @@ class RegistrationService
 
             $user = new User([
                 'school_id' => $draft->data['student_id'],
-                'college_id' => $draft->data['college_id'],
+                'program_code' => $draft->data['program_code'],
                 ...$names,
                 'email' => $data['email'],
                 'password' => $data['password'],
@@ -242,10 +263,21 @@ class RegistrationService
                 throw ValidationException::withMessages(['email' => 'An account with this email or student ID already exists.']);
             }
 
+            $term = AcademicTerm::find($draft->data['academic_term_id'] ?? null);
+
+            if (($data['save_schedule'] ?? false) && $term !== null) {
+                $this->schedules->replaceCorRows($user, $term, $draft->data['meetings'] ?? []);
+            }
+
             $draft->delete();
 
             return $user;
         });
+
+        // After the commit: the code row and the queued email belong to an account that exists.
+        $this->emailCodes->send($user, EmailCodePurpose::VerifyEmail);
+
+        return $user;
     }
 
     /**

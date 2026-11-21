@@ -17,13 +17,20 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        $this->call([CollegeSeeder::class, ProgramSeeder::class, AcademicTermSeeder::class, AdminSeeder::class]);
+        $this->call([
+            CollegeSeeder::class,
+            ProgramSeeder::class,
+            AcademicTermSeeder::class,
+            AdminSeeder::class,
+            CampusMapSeeder::class,
+            EmergencyContactSeeder::class,
+        ]);
 
         User::factory()->create([
             'first_name' => 'Test',
             'last_name' => 'User',
             'email' => 'test@example.com',
-            'college_id' => 'C01',
+            'program_code' => 'BSIT',
         ]);
     }
 }

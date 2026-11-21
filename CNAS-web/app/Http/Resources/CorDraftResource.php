@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * What the app shows the student to confirm after a COR upload. Student ID and college
+ * What the app shows the student to confirm after a COR upload. Student ID, program and college
  * are read-only; only the name split can change.
  *
  * @property StartedRegistration $resource
@@ -22,11 +22,12 @@ class CorDraftResource extends JsonResource
     public static $wrap = null;
 
     /**
-     * @return array{draft_token: string, student_id: string, first_name: ?string, middle_name: ?string, last_name: ?string, college_id: string}
+     * @return array{draft_token: string, student_id: string, first_name: ?string, middle_name: ?string, last_name: ?string, program_code: string, program_name: ?string, college_id: ?string}
      */
     public function toArray(Request $request): array
     {
         $data = $this->resource->draft->data;
+        $program = $this->resource->draft->program();
 
         return [
             'draft_token' => $this->resource->token,
@@ -34,7 +35,9 @@ class CorDraftResource extends JsonResource
             'first_name' => $data['first_name'],
             'middle_name' => $data['middle_name'],
             'last_name' => $data['last_name'],
-            'college_id' => $data['college_id'],
+            'program_code' => $data['program_code'],
+            'program_name' => $program?->name,
+            'college_id' => $program?->college_id,
         ];
     }
 }

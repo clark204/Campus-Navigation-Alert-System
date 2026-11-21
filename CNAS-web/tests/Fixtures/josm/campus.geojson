@@ -1,0 +1,109 @@
+{
+  "type": "FeatureCollection",
+  "generator": "JOSM/1.5 (test fixture)",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "building",
+        "id": "b8",
+        "name": "Library Building",
+        "type": "building",
+        "floors": "3",
+        "landmark_name": "the Library"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[124.7480, 8.5410], [124.7485, 8.5410], [124.7485, 8.5414], [124.7480, 8.5414], [124.7480, 8.5410]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "room",
+        "id": "r16;r17;r18",
+        "name": "NEE 101;NEE 201;NEE 301",
+        "building_id": "b1",
+        "floor": "1;2;3",
+        "type": "classroom",
+        "is_it": "true"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [124.7486, 8.5411]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "room",
+        "id": "r19",
+        "name": "NEE 102",
+        "building_id": "b1",
+        "floor": "1",
+        "type": "classroom",
+        "is_it": "false"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [124.74843322, 8.54101354]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "stair",
+        "id": "s0",
+        "name": "NEE Stair A",
+        "building_id": "b1",
+        "floors": "3",
+        "center": "[124.74853847,8.54102173]"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[124.7484, 8.5409], [124.7486, 8.5409], [124.7486, 8.5410], [124.7484, 8.5410], [124.7484, 8.5409]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "path",
+        "name": "  walkway   7 ",
+        "type": "walkway",
+        "floor": "1"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[124.74825093, 8.5411886], [124.74813527, 8.54123571]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "path",
+        "name": "Gate Lane",
+        "type": "walkway",
+        "floor": "1"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[124.7479, 8.5405], [124.7480, 8.5406]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "room",
+        "name": "Shared Room",
+        "building_id": "b2",
+        "floor": "1",
+        "type": "classroom",
+        "is_it": "false"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [124.7470, 8.5400]
+      }
+    }
+  ]
+}

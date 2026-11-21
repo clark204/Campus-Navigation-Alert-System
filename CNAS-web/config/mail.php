@@ -49,6 +49,18 @@ return [
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
 
+        // A second SMTP account, used by the failover mailer below when the main one (MAIL_*) refuses or is down.
+        'smtp_fallback' => [
+            'transport' => 'smtp',
+            'scheme' => env('MAIL_FALLBACK_SCHEME'),
+            'host' => env('MAIL_FALLBACK_HOST', '127.0.0.1'),
+            'port' => env('MAIL_FALLBACK_PORT', 2525),
+            'username' => env('MAIL_FALLBACK_USERNAME'),
+            'password' => env('MAIL_FALLBACK_PASSWORD'),
+            'timeout' => null,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+        ],
+
         'ses' => [
             'transport' => 'ses',
         ],
@@ -79,12 +91,11 @@ return [
             'transport' => 'array',
         ],
 
+        // MAIL_MAILER=failover: tries each mailer in order until one sends. A mailer that failed is skipped for
+        // retry_after seconds (per worker process).
         'failover' => [
             'transport' => 'failover',
-            'mailers' => [
-                'smtp',
-                'log',
-            ],
+            'mailers' => array_values(array_filter(array_map('trim', explode(',', (string) env('MAIL_FAILOVER_MAILERS', 'smtp,smtp_fallback'))))),
             'retry_after' => 60,
         ],
 

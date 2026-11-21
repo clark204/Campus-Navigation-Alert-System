@@ -1,0 +1,27 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Who sent, edited or resolved each alert, and when.
+     */
+    public function up(): void
+    {
+        Schema::create('alert_logs', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('alert_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('action', 10);
+            $table->timestamp('created_at');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('alert_logs');
+    }
+};

@@ -1,0 +1,36 @@
+{
+    "_readme": "Friendly names used in directions (\"Turn left near the Library\"). Keys are ids from buildings.geojson and paths.geojson; edit only the values. Placeholders for now. Include 'the' where it reads naturally. Remove a building to stop it being mentioned.",
+    "buildings": {
+        "b1": "the NEE Building",
+        "b2": "Building 01",
+        "b3": "the Registrar",
+        "b4": "Building 02",
+        "b5": "Building 09",
+        "b6": "Building 08",
+        "b7": "Building 04",
+        "b8": "the Library",
+        "b9": "Building 10",
+        "b10": "Building 03",
+        "b11": "Building 05",
+        "b12": "Building 06",
+        "b13": "the Guard Post",
+        "b14": "the Court",
+        "b15": "Building 07"
+    },
+    "paths": {
+        "p0": "the Exit Gate",
+        "p1": "the Entrance Gate",
+        "p15": "the Vehicle Gate",
+        "p2": "the main walkway",
+        "p3": "the walkway",
+        "p4": "the walkway",
+        "p5": "the walkway",
+        "p6": "the walkway",
+        "p7": "the walkway",
+        "p8": "the walkway",
+        "p9": "the walkway",
+        "p10": "the walkway",
+        "p11": "the walkway",
+        "p12": "the walkway"
+    }
+}

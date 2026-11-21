@@ -1,19 +1,7 @@
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-
-const COLORS = {
-    ground: '#e7ecdf',
-    campus: '#cfdcc3',
-    evacuation: '#b9d1a8',
-    facility: '#e4d8c6',
-    walkway: '#ffffff',
-    gate: '#C59B27',
-    building: '#e9ddd0',
-    selected: '#C59B27',
-    entrance: '#581825',
-};
-
-const METERS_PER_FLOOR = 3.5;
+import { loadMapData } from './map-data.js';
+import { COLORS, METERS_PER_FLOOR } from './map-style.js';
 
 // Returns [[minLng, minLat], [maxLng, maxLat]] for a GeoJSON polygon ring.
 function ringBounds(ring) {
@@ -44,10 +32,7 @@ function fitOutline(map, ring, padding) {
 }
 
 async function initCampusMap(el) {
-    const base = el.dataset.mapsUrl;
-    const [buildings, paths, entrances] = await Promise.all(
-        ['buildings', 'paths', 'entrances'].map((name) => fetch(`${base}/${name}.geojson`).then((res) => res.json())),
-    );
+    const { buildings, paths, entrances } = await loadMapData(el.dataset.mapUrl);
 
     const campus = buildings.features.find((f) => f.properties.type === 'campus');
     const campusBounds = ringBounds(campus.geometry.coordinates[0]);
@@ -69,7 +54,7 @@ async function initCampusMap(el) {
                     type: 'fill',
                     source: 'buildings',
                     filter: ['==', ['get', 'type'], 'campus'],
-                    paint: { 'fill-color': COLORS.campus, 'fill-outline-color': '#9fb48f' },
+                    paint: { 'fill-color': COLORS.campus, 'fill-outline-color': '#7e9c6a' },
                 },
                 {
                     id: 'grounds',
@@ -84,6 +69,8 @@ async function initCampusMap(el) {
                     id: 'walkways',
                     type: 'line',
                     source: 'paths',
+                    // Ground floor only; corridors upstairs are shown while navigating.
+                    filter: ['==', ['coalesce', ['get', 'floor'], 1], 1],
                     layout: { 'line-cap': 'round', 'line-join': 'round' },
                     paint: {
                         'line-color': ['match', ['get', 'type'], 'gate', COLORS.gate, COLORS.walkway],

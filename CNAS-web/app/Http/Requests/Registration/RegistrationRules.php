@@ -7,7 +7,7 @@ use Illuminate\Validation\Rules\Password;
 
 /**
  * Validation shared by the web registration steps and the API, so both accept the same input.
- * Student ID and college are never accepted from the request; they come from the COR.
+ * Student ID and program are never accepted from the request; they come from the COR.
  */
 trait RegistrationRules
 {
@@ -45,6 +45,16 @@ trait RegistrationRules
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')],
             'password' => ['required', 'string', 'confirmed', Password::min(8)->letters()->numbers()],
         ];
+    }
+
+    /**
+     * "Also save my class schedule". Left out means no.
+     *
+     * @return array<string, list<string>>
+     */
+    protected function scheduleRules(): array
+    {
+        return ['save_schedule' => ['sometimes', 'boolean']];
     }
 
     /**

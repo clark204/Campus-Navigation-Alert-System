@@ -36,14 +36,17 @@ class AdminSeederTest extends TestCase
         $this->assertTrue(Hash::check('first-password', $admin->password));
     }
 
-    public function test_running_it_again_updates_the_same_account(): void
+    public function test_running_it_again_keeps_the_email_and_password_the_admin_changed(): void
     {
         $this->seed(AdminSeeder::class);
-        config(['auth.admin.password' => 'second-password']);
+        User::sole()->update(['email' => 'changed@example.com', 'password' => 'changed-password1']);
 
         $this->seed(AdminSeeder::class);
 
-        $this->assertTrue(Hash::check('second-password', User::sole()->password));
+        $admin = User::sole();
+        $this->assertSame('changed@example.com', $admin->email);
+        $this->assertTrue(Hash::check('changed-password1', $admin->password));
+        $this->assertSame(UserRole::Admin, $admin->role);
     }
 
     public function test_it_refuses_to_run_without_a_password(): void

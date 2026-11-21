@@ -5,6 +5,7 @@ namespace Tests\Feature\Auth;
 use App\Enums\UserRole;
 use App\Models\User;
 use Database\Seeders\CollegeSeeder;
+use Database\Seeders\ProgramSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -20,14 +21,14 @@ class ApiLoginTest extends TestCase
     {
         parent::setUp();
 
-        $this->seed(CollegeSeeder::class);
+        $this->seed([CollegeSeeder::class, ProgramSeeder::class]);
         $this->user = User::factory()->create([
             'school_id' => '20240001',
             'first_name' => 'Juan Miguel',
             'middle_name' => 'S',
             'last_name' => 'Dela Cruz',
             'email' => 'juan@tcc.edu.ph',
-            'college_id' => 'C01',
+            'program_code' => 'BSIT',
             'role' => UserRole::Student,
         ]);
     }
@@ -68,8 +69,11 @@ class ApiLoginTest extends TestCase
                 'middle_name' => 'S',
                 'last_name' => 'Dela Cruz',
                 'email' => 'juan@tcc.edu.ph',
+                'email_verified' => true,
+                'must_change_password' => false,
                 'role' => 'student',
                 'college' => ['id' => 'C01', 'name' => $this->user->college->name],
+                'program' => ['code' => 'BSIT', 'name' => 'Bachelor of Science in Information Technology'],
             ],
         ]);
 

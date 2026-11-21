@@ -2,16 +2,18 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Enums\LoginChannel;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Registration\CreateAccountRequest;
 use App\Http\Requests\Registration\UploadCorWithConsentRequest;
 use App\Models\AcademicTerm;
-use App\Models\College;
 use App\Models\RegistrationDraft;
+use App\Services\LoginActivityLogger;
 use App\Services\RegistrationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -19,7 +21,8 @@ use Illuminate\View\View;
 /**
  * Web registration in two steps: upload COR, then create the account (the verified COR
  * details read-only, plus email and password). The draft token lives in the session;
- * all the work is in RegistrationService.
+ * all the work is in RegistrationService. The new student is signed in and lands on
+ * "Verify your email" (EmailVerificationController).
  */
 class RegisterController extends Controller
 {
@@ -55,16 +58,20 @@ class RegisterController extends Controller
             return $this->restart($request);
         }
 
+        $program = $draft->program();
+
         return view('pages.register-confirm-page', [
             'cor' => $draft->data,
             'displayName' => $this->displayName($draft->data),
-            'collegeName' => College::find($draft->data['college_id'])?->name,
+            'collegeName' => $program?->college?->name,
+            'programName' => $program?->name,
+            'meetingCount' => count($draft->data['meetings'] ?? []),
             // Reuse the key after a failed submit so a retry is still the same request.
             'idempotencyKey' => old('idempotency_key', (string) Str::uuid()),
         ]);
     }
 
-    public function store(CreateAccountRequest $request): RedirectResponse
+    public function store(CreateAccountRequest $request, LoginActivityLogger $activity): RedirectResponse
     {
         $token = $request->session()->get(self::DRAFT_TOKEN);
 
@@ -73,7 +80,7 @@ class RegisterController extends Controller
         }
 
         try {
-            $this->registrations->complete($token, $request->validated());
+            $user = $this->registrations->complete($token, $request->validated());
         } catch (ValidationException $exception) {
             if (Arr::has($exception->errors(), 'draft_token')) {
                 return $this->restart($request);
@@ -90,7 +97,13 @@ class RegisterController extends Controller
 
         $request->session()->forget(self::DRAFT_TOKEN);
 
-        return redirect()->route('login')->with('status', 'Account created. You can now sign in.');
+        // Signed in straight away, so the student can enter the code that RegistrationService just emailed.
+        Auth::guard('web')->login($user);
+        $request->session()->regenerate();
+        $login = $activity->recordLogin($user, LoginChannel::Web, $request);
+        $request->session()->put(LoginActivityLogger::SESSION_KEY, $login->id);
+
+        return redirect()->route('email.verify')->with('status', "Account created. We sent a 6-digit code to {$user->email}.");
     }
 
     private function currentDraft(Request $request): ?RegistrationDraft

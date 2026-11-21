@@ -1,7 +1,7 @@
 {{-- Interactive campus preview: drag to move, pinch / Ctrl + scroll to zoom, two-finger twist to rotate. --}}
 <figure data-campus-map-card
     class="group relative overflow-hidden rounded-3xl border border-white/15 bg-white/5 shadow-2xl backdrop-blur-sm">
-    <div data-campus-map data-maps-url="{{ asset('maps') }}"
+    <div data-campus-map data-map-url="{{ route('api.map') }}"
         class="aspect-4/3 w-full sm:aspect-8/5"
         role="region" aria-label="Interactive 3D map of the Tagoloan Community College campus"></div>
 

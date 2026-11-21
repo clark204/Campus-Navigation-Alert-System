@@ -15,7 +15,7 @@ use Tests\TestCase;
 
 /**
  * The validator itself is pure; the framework TestCase is only needed to parse the fixture
- * (program → college lookup). Terms are unsaved models.
+ * (program lookup). Terms are unsaved models.
  */
 class CorValidatorTest extends TestCase
 {
