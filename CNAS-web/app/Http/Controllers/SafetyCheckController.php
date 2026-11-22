@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 
 /**
  * "I'm safe" from the alarm takeover or the banner, for signed-in users during an active emergency. An advisory or
- * a warning doesn't ask, so it is refused here too.
+ * a warning doesn't ask, so it is refused here too. Also the mobile app's POST /api/alerts/{alert}/safe (Sanctum).
  */
 class SafetyCheckController extends Controller
 {

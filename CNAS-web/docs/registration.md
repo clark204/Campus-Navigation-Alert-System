@@ -12,7 +12,7 @@ There is no admin approval. Students with problems contact the administrator (co
 - The COR PDF is never stored. Only a short-lived `registration_drafts` row is kept (expires after 30 minutes, pruned by the scheduler). The draft also carries the COR's class meetings and term id; they become the student's class schedule only when the student ticks "Also save my class schedule" on the confirm step (API: `save_schedule: true`). See `docs/schedule.md`.
 - Student ID, program and college are read-only on the confirm step. The name can only be re-split, not changed.
 - Duplicate student ID is rejected with a "contact the administrator" message.
-- Consent checkbox is required (Data Privacy Act, RA 10173).
+- Consent checkbox is required (Data Privacy Act, RA 10173), on the web and in the app: `POST /api/register/cor` needs `consent=1` (`UploadCorWithConsentRequest`, 422 `errors.consent` without it). The app shows the same notice text as the web page.
 - Only CORs for the CURRENT term are accepted. The current term is one row in `academic_terms` (is_current). Admin changes it by hand each semester at /admin/academic-terms. No current term = registration closed.
 - Validator checks are all pass/fail: header text, labels, 8-digit student ID, AY + semester = current term, total units = sum of subjects, valid Date Enrolled, both printed copies match, known program code (a program missing from the `programs` table fails the COR).
 
@@ -22,7 +22,7 @@ There is no admin approval. Students with problems contact the administrator (co
 - Programs and colleges: `Program` (code, name, college), `College`. `User::program` is the account's program; `User::college` goes through it, so `$user->college` still works. `College::users` counts through programs.
 - Schema: `users.program_code` (nullable, FK to `programs.code`, null on delete). It replaced `users.college_id` in migration `2026_11_15_090000_replace_users_college_with_program`: a user got the program of their college when that college had exactly one program; otherwise null, to be set by an admin.
 - Web: `app/Http/Controllers/Auth/RegisterController.php`, routes /register, /register/cor, /register/confirm
-- API (for CNAS-mobile): `app/Http/Controllers/Api/RegisterController.php`, POST /api/register/cor and /api/register
+- API (for CNAS-mobile): `app/Http/Controllers/Api/RegisterController.php`, POST /api/register/cor (`cor` + `consent`; answers with the read-only details incl. `college_name` and `meeting_count`, `CorDraftResource`) and /api/register. /api/register returns the user without a token; the app then calls /api/login.
 - Login: `app/Services/LoginService.php`, web `Auth/LoginController`, API `Api/AuthController` (Sanctum tokens: /api/login, /api/me, /api/logout). Rate limit `login` (5 a minute per ID/email and IP, `AppServiceProvider`). On the page, the "try again in N seconds" wait counts down live (`session('throttle')`, `resources/js/retry-countdown.js`), and the button shows a spinner and "Signing in…" while the request runs (`data-submit-once` + `data-loading-text` in `app.js`).
 - Sign-in history: `LoginActivity` model, `LoginActivityLogger`, `DeviceDetector` (kept 90 days)
 - Roles: `app/Enums/UserRole.php` (admin, staff, faculty, student). After login each role lands on its own dashboard. Signed-in users cannot open the landing page.

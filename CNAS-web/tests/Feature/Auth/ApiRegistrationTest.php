@@ -40,7 +40,16 @@ class ApiRegistrationTest extends TestCase
 
     private function uploadCor(?UploadedFile $file = null): TestResponse
     {
-        return $this->postJson(route('api.register.cor'), ['cor' => $file ?? CorFixture::upload()]);
+        return $this->postJson(route('api.register.cor'), ['cor' => $file ?? CorFixture::upload(), 'consent' => '1']);
+    }
+
+    public function test_consent_to_the_privacy_notice_is_required(): void
+    {
+        $this->postJson(route('api.register.cor'), ['cor' => CorFixture::upload()])
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.consent', ['Please agree to the data privacy notice to continue.']);
+
+        $this->assertSame(0, RegistrationDraft::count());
     }
 
     private function draftToken(): string
@@ -69,7 +78,10 @@ class ApiRegistrationTest extends TestCase
 
         $response->assertOk()->assertExactJsonStructure([
             'draft_token', 'student_id', 'first_name', 'middle_name', 'last_name', 'program_code', 'program_name', 'college_id',
+            'college_name', 'meeting_count',
         ]);
+        $this->assertSame(College::findOrFail('C01')->name, $response->json('college_name'));
+        $this->assertGreaterThan(0, $response->json('meeting_count'));
         $response->assertJson([
             'student_id' => '20240001',
             'first_name' => 'Juan Miguel',
@@ -138,7 +150,7 @@ class ApiRegistrationTest extends TestCase
 
     public function test_a_missing_file_is_rejected(): void
     {
-        $this->assertOnlyCorError($this->postJson(route('api.register.cor')), 'Please upload your COR as a PDF file (up to 5 MB).');
+        $this->assertOnlyCorError($this->postJson(route('api.register.cor'), ['consent' => '1']), 'Please upload your COR as a PDF file (up to 5 MB).');
     }
 
     public function test_an_unreadable_pdf_is_an_invalid_cor(): void

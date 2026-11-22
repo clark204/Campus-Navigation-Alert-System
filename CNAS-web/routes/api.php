@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\MapController;
 use App\Http\Controllers\Api\PasswordRecoveryController;
 use App\Http\Controllers\Api\RegisterController;
 use App\Http\Controllers\Api\ScheduleController;
+use App\Http\Controllers\SafetyCheckController;
 use Illuminate\Http\Middleware\SetCacheHeaders;
 use Illuminate\Support\Facades\Route;
 
@@ -56,4 +57,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // The signed-in student's classes for the current term, each with its room on the map when there is one.
     Route::get('/schedule', ScheduleController::class)->name('api.schedule');
+
+    // "I'm safe" from the app's takeover or banner. The web controller, answering JSON: 409 when the alert is over or
+    // isn't an emergency. Unverified users can answer, like on the web.
+    Route::post('/alerts/{alert}/safe', SafetyCheckController::class)->middleware('throttle:10,1')->name('api.alerts.safe');
 });

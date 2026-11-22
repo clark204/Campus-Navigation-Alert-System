@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\RegisterRequest;
-use App\Http\Requests\Registration\UploadCorRequest;
+use App\Http\Requests\Registration\UploadCorWithConsentRequest;
 use App\Http\Resources\CorDraftResource;
 use App\Http\Resources\UserResource;
 use App\Services\RegistrationService;
@@ -18,7 +18,10 @@ class RegisterController extends Controller
 {
     public function __construct(private RegistrationService $registrations) {}
 
-    public function storeCor(UploadCorRequest $request): CorDraftResource
+    /**
+     * The COR plus `consent`: the app shows the Data Privacy Act notice first, like web step 1.
+     */
+    public function storeCor(UploadCorWithConsentRequest $request): CorDraftResource
     {
         return new CorDraftResource($this->registrations->startFromCor($request->file('cor')));
     }

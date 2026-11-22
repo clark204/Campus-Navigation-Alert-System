@@ -23,7 +23,7 @@ Read this before touching alerts, push notifications, or the "I'm safe" check.
 - Public: `GET /api/alerts/active` (`Api/ActiveAlertController`, `AlertResource`), polled by open pages
 - Front end: `resources/js/alerts/` (takeover, alarm, banner state, push, storage), partials `resources/views/partials/alert-*.blade.php`
 - Push: `laravel-notification-channels/webpush`, `App\Jobs\SendAlertPush`, `AlertPushNotification`, `PushSubscriptionController`, `public/sw.js`, `public/manifest.json`
-- "I'm safe": `SafetyCheckController`, `safety_checks` table (one answer per user per alert)
+- "I'm safe": `SafetyCheckController`, `safety_checks` table (one answer per user per alert). Web: `POST /alerts/{alert}/safe` (session). Mobile app: `POST /api/alerts/{alert}/safe` (Sanctum, same controller, throttle 10 a minute) → 200 `{status: "safe"}`, 409 `{message}` "This alert is over." or "Only an emergency asks whether you are safe.". Unverified users can answer on both.
 - Levels: `App\Enums\AlertSeverity` (label, color, `description()` for when to choose it, `example()`, and `studentsGet()` for what students receive; the admin forms use these, see `admin/severity-cards`), `AlertType::defaultSeverity()`, the level picker on the send and edit forms (`admin/alert-send-page`, `alert-edit-page`), the level badge (`admin/severity-badge`). Front end: `alerts/popup.js` (the warning popup, `partials/alert-popup`), `alerts/takeover-state.js` (`shouldTakeOver`, `shouldPopUp`), `alerts/banner-state.js` (`showsSafeButton`, `showsRouteToSafety`), the banner colors in `partials/alert-banner`.
 - Route to safety: `resources/js/navigation/evacuation.js` (blocks paths inside the danger zone, routes to the nearest evacuation area)
 

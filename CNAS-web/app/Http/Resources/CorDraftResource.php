@@ -22,7 +22,7 @@ class CorDraftResource extends JsonResource
     public static $wrap = null;
 
     /**
-     * @return array{draft_token: string, student_id: string, first_name: ?string, middle_name: ?string, last_name: ?string, program_code: string, program_name: ?string, college_id: ?string}
+     * @return array{draft_token: string, student_id: string, first_name: ?string, middle_name: ?string, last_name: ?string, program_code: string, program_name: ?string, college_id: ?string, college_name: ?string, meeting_count: int}
      */
     public function toArray(Request $request): array
     {
@@ -38,6 +38,9 @@ class CorDraftResource extends JsonResource
             'program_code' => $data['program_code'],
             'program_name' => $program?->name,
             'college_id' => $program?->college_id,
+            'college_name' => $program?->college?->name,
+            // The class meetings "Also save my class schedule" would save (save_schedule on /api/register).
+            'meeting_count' => count($data['meetings'] ?? []),
         ];
     }
 }
