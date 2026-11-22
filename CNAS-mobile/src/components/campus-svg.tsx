@@ -14,6 +14,8 @@ type Props = {
   affected: string[];
   /** Line widths are in meters; a mini-map draws them thicker so they show at all. */
   lineScale?: number;
+  /** Ground walkways fade while navigation shows an upper floor. */
+  walkwayOpacity?: number;
 };
 
 const FILL: Record<string, string> = {
@@ -27,7 +29,7 @@ const FILL: Record<string, string> = {
 const ORDER = ['campus', 'evacuation', 'facility', 'building'];
 
 /** The campus drawn with react-native-svg from GET /api/map. No tiles. */
-export const CampusSvg = memo(function CampusSvg({ map, projection, viewBox, width, height, affected, lineScale = 1 }: Props) {
+export const CampusSvg = memo(function CampusSvg({ map, projection, viewBox, width, height, affected, lineScale = 1, walkwayOpacity = 1 }: Props) {
   const buildings = [...map.buildings].sort((a, b) => ORDER.indexOf(a.type) - ORDER.indexOf(b.type));
   return (
     <Svg width={width} height={height} viewBox={viewBox.join(' ')}>
@@ -53,6 +55,7 @@ export const CampusSvg = memo(function CampusSvg({ map, projection, viewBox, wid
             key={path.id}
             points={svgPoints(projection, path.line)}
             fill="none"
+            strokeOpacity={walkwayOpacity}
             stroke={path.type === 'gate' ? MAP_COLORS.gate : MAP_COLORS.walkway}
             strokeWidth={(path.type === 'gate' ? 3 : 2) * lineScale}
             strokeLinecap="round"

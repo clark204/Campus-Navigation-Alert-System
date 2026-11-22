@@ -8,8 +8,12 @@
       ],
       "@/assets/*": [
         "./assets/*"
+      ],
+      "@nav/*": [
+        "../CNAS-web/resources/js/navigation/*"
       ]
-    }
+    },
+    "allowJs": true
   },
   "include": [
     "**/*.ts",

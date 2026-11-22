@@ -4,7 +4,8 @@ import { API_URL } from './config';
 import { readJson, writeJson } from './storage';
 import type { Alert } from './types';
 
-// GET /api/map (CNAS-web app/Services/CampusMap.php), cut down to what the app draws: building outlines and paths.
+// GET /api/map (CNAS-web app/Services/CampusMap.php): what the app draws (building outlines and paths) plus what the
+// navigation engine needs (`nav`: the GeoJSON sections as the web's /navigate gets them, without photos).
 // Kept in AsyncStorage with its ETag, so the map shows offline and is only downloaded again when it changed (304).
 
 type Position = [number, number]; // [longitude, latitude]
@@ -18,16 +19,31 @@ export type MapBuilding = {
 
 export type MapPath = { id: string; type: 'walkway' | 'gate'; floor: number; line: Position[] };
 
+type Feature = { type: 'Feature'; properties: Record<string, any>; geometry: { type: string; coordinates: any } };
+type FeatureCollection = { type: 'FeatureCollection'; features: Feature[] };
+
+/** The map sections the shared navigation engine reads (CNAS-web resources/js/navigation/graph.js, instructions.js). */
+export type NavData = {
+  buildings: FeatureCollection;
+  paths: FeatureCollection;
+  /** The rooms. */
+  entrances: FeatureCollection;
+  stairs: FeatureCollection;
+  landmarks: { buildings: Record<string, string>; paths: Record<string, string> };
+};
+
 export type CampusMap = {
   buildings: MapBuilding[];
   paths: MapPath[];
   /** Friendly names by building code ("the Library"). */
   landmarks: Record<string, string>;
+  nav: NavData;
 };
 
 type Cached = { etag: string | null; map: CampusMap };
 
-const CACHE_KEY = 'cnas.map';
+// v2: the map now keeps rooms, stairs and path names for navigation; v1 copies are downloaded again.
+const CACHE_KEY = 'cnas.map.v2';
 
 /** Same colors as the web map (CNAS-web resources/js/map-style.js). */
 export const MAP_COLORS = {
@@ -49,7 +65,23 @@ function slim(data: any): CampusMap {
   const paths: MapPath[] = (data?.paths?.features ?? [])
     .filter((f: any) => f?.geometry?.type === 'LineString')
     .map((f: any) => ({ id: f.properties.id, type: f.properties.type, floor: f.properties.floor ?? 1, line: f.geometry.coordinates }));
-  return { buildings, paths, landmarks: data?.landmarks?.buildings ?? {} };
+  return { buildings, paths, landmarks: data?.landmarks?.buildings ?? {}, nav: navData(data) };
+}
+
+// Photos are left out: navigation doesn't use them, and they would only make the saved copy bigger.
+const collection = (section: any): FeatureCollection => ({
+  type: 'FeatureCollection',
+  features: (section?.features ?? []).map(({ type, geometry, properties: { photos, ...properties } }: any) => ({ type, geometry, properties })),
+});
+
+function navData(data: any): NavData {
+  return {
+    buildings: collection(data?.buildings),
+    paths: collection(data?.paths),
+    entrances: collection(data?.entrances),
+    stairs: collection(data?.stairs),
+    landmarks: { buildings: data?.landmarks?.buildings ?? {}, paths: data?.landmarks?.paths ?? {} },
+  };
 }
 
 // One shared copy for every screen (mini-maps and the map screen).

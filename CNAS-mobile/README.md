@@ -3,11 +3,13 @@
 The phone app for CNAS (Campus Navigation & Alert System), Tagoloan Community College. Expo SDK 58, Expo Router,
 TypeScript. It talks only to the CNAS-web API (`../CNAS-web/routes/api.php`).
 
-Version 1 covers sign-in, COR registration, email verification, forgot password, in-app emergency alerts and a campus
-map to look at. Navigation is not built yet: the map screen links to Navigate on the website.
+It covers sign-in, COR registration, email verification, forgot password, in-app emergency alerts, the campus map and
+walking navigation with voice (see "Navigation" below).
 
 Everything except push notifications runs in Expo Go. Push alerts (the phone rings for an emergency while CNAS is
-closed) need the development build or the preview APK: see "Push alerts" below.
+closed) need the development build or the preview APK: see "Push alerts" below. Navigation added native modules
+(expo-location, expo-speech, expo-sensors, expo-camera, expo-keep-awake), so a development build made before it must
+be built again.
 
 ## Setup
 
@@ -36,11 +38,12 @@ Before finishing any change: `npx expo lint` and `npx tsc --noEmit`.
 | Verify email: 6-digit code, resend with countdown, "Skip for now" | `verify-email.tsx` | `POST /email/verify`, `POST /email/resend` |
 | Forgot password: send code, enter code, new password | `forgot-password.tsx` | `POST /password/forgot`, `/password/verify-code`, `/password/reset` |
 | Campus map for guests, with Back (signed in, it is the Map tab) | `map.tsx` | `GET /map` |
+| Navigate: walking directions for guests and signed-in users (`?to=`, `?from=` place ids, like the web) | `navigate.tsx` (`components/navigation/`) | `GET /map` |
 | **Admin layout** (Dashboard, Map, Account tabs) | `admin/_layout.tsx` | |
 | Admin dashboard: what students see now (alert or "No active alert"), Send an alert, Alerts, Accounts, Concerns and Settings (open the website), emergency numbers | `admin/index.tsx` | `GET /alerts/active` |
 | **Portal layout** for students, faculty and staff (Home, Map, Account tabs) | `portal/_layout.tsx` | |
 | Portal home: greeting, college, alert banner, emergency numbers, schedule, saved places and help (open the website) | `portal/index.tsx` | |
-| Map tab (both): pinch to zoom, drag, double-tap, building names, link to Navigate on the website | `admin/map.tsx`, `portal/map.tsx` (`components/campus-map-screen.tsx`) | `GET /map` |
+| Map tab (both): pinch to zoom, drag, double-tap, building names, "Where to?" opens Navigate | `admin/map.tsx`, `portal/map.tsx` (`components/campus-map-screen.tsx`) | `GET /map` |
 | Account tab (both): name, role, email (verified or not), ID, college, program, alerts on this phone, website settings, **Sign out** | `admin/account.tsx`, `portal/account.tsx` (`components/account-screen.tsx`) | `POST /logout` |
 
 `_layout.tsx` decides which screens exist (Expo Router protected routes), with exactly one area open at a time:
@@ -71,8 +74,8 @@ The native splash (`app.json`, expo-splash-screen) uses the same background (`#F
 
 ## Campus map
 
-`src/lib/campus-map.ts` loads `GET /api/map` and keeps only the building outlines, paths and landmark names.
-- **Cache:** saved in AsyncStorage with the response's ETag. The next load sends `If-None-Match`, so an unchanged map comes back as a 304 with no download. It is checked again at most every 5 minutes, and offline the saved copy is used.
+`src/lib/campus-map.ts` loads `GET /api/map` and keeps the building outlines, paths and landmark names for drawing, and the buildings, paths, rooms (`entrances`), stairs and landmarks for navigation (`nav`, without photos).
+- **Cache:** saved in AsyncStorage (`cnas.map.v2`) with the response's ETag. The next load sends `If-None-Match`, so an unchanged map comes back as a 304 with no download. It is checked again at most every 5 minutes, and offline the saved copy is used.
 - **Drawing:** `components/campus-svg.tsx` draws it with react-native-svg, no tiles, in the web map's colors:
   - buildings brick red
   - campus and grounds green
@@ -80,11 +83,44 @@ The native splash (`app.json`, expo-splash-screen) uses the same background (`#F
   - facilities beige
   - walkways white, gates gold
   - buildings named by an active emergency in alarm red
-- **Mini-map** (`components/mini-map.tsx`, Welcome and Home, top right): a 68 px circle fitted to the campus outline. During an active emergency with a location, the incident shows as a pulsing red dot (still with reduce motion on).
-- **Map screen** (`app/map.tsx`): pinch and drag (react-native-gesture-handler 3 hooks with Reanimated), double-tap to zoom in or reset. The incident gets a dot and its danger radius.
+- **Mini-map** (`components/mini-map.tsx`, Welcome, Home and Dashboard, top right): a 68 px circle fitted to the campus outline. Tap opens Navigate. During an active emergency with a location, the incident shows as a pulsing red dot (still with reduce motion on).
+- **Map screen** (`app/map.tsx`, the Map tabs): pinch and drag (react-native-gesture-handler 3 hooks with Reanimated), double-tap to zoom in or reset, in `components/zoomable-map.tsx` (shared with Navigate, which adds a camera). The incident gets a dot and its danger radius.
 - **Names:** landmark names without "the", else the building name. A name only appears once the zoom is high enough that it doesn't overlap a bigger building's name.
 
 Reanimated shared values use `.get()` / `.set()`, not `.value`: the React Compiler is on, and it reads `.value` during render otherwise (Reanimated warns about that).
+
+## Navigation
+
+Walking directions like /navigate on the website (CNAS-web `docs/navigation.md`), in `app/navigate.tsx`.
+
+- **One engine, shared with the website.** The route graph, router, directions, legs, GPS smoothing, tracker, voice
+  prompts, step counter and simulator are not copied: `metro.config.js` imports them from
+  `../CNAS-web/resources/js/navigation` as `@nav/<file>.js`, so the app and the website give the same route and the
+  same directions. `src/lib/navigation/engine.ts` is the only file that imports them and adds the types. Those files
+  must stay free of the DOM and MapLibre; CNAS-web `tests/js/navigation-shared.test.js` checks it. EAS uploads the
+  whole git repository, so they are there in cloud builds.
+- **Session** (`src/lib/navigation/session.ts`): the wiring of the web's `main.js` without the DOM, with its texts and
+  numbers: voice prompts, wrong way, reroute after 3 fixes more than 10 m off the route, manual mode ("Next") when
+  location is off or no fix of 25 m or better comes within 20 s, one floor at a time (the pin is on the stairs, and
+  moves to the room after "I'm on the 2nd floor"). `destination.kind` already has `evacuation` for the route to safety.
+- **Start:** My location when the fix is 25 m or better and within 40 m of a walkway, else the Entrance Gate with a note
+  why (it switches to My location once that becomes usable). "From" picks a gate or room; **Scan QR** (expo-camera)
+  reads the CNAS QR codes (the web's `/navigate?from=<place>` links). Scanned while walking, it is "I'm here" at that
+  spot, or a new route from there when it is off the route.
+- **Search** (`src/lib/navigation/places.ts`): room names, building landmark names, gates, and words like "CR", "lab",
+  "office". Codes are never shown. A building goes to its nearest ground-floor door.
+- **Phone parts:** `location.ts` (expo-location, about one fix a second, while the app is open only), `steps.ts`
+  (accelerometer into the shared step counter), `voice.ts` (expo-speech, mute remembered), expo-keep-awake while
+  walking. No compass is used. Android reports a missing speed or direction as 0 (expo-location copies `getSpeed()`
+  and `getBearing()` unchecked); `location.ts` treats 0 as unknown, or the dot would freeze as "standing still".
+- **Drawing:** `components/navigation/` (route line in meters inside the zooming map, the blue dot gliding between
+  fixes with a direction cone, the dropping pin, the maroon instruction banner). Reduce motion turns off the glide,
+  pulse, pin drop and draw-in.
+- **Testing away from campus:** in a development build, "debug" (bottom left while walking) shows GPS accuracy, why
+  fixes were not used, the heading's source, off-route meters and reroutes, and has **Simulate**, **Walk route** and
+  **Walk off** (a fake GPS walk through the same path as real fixes).
+- **Web preview gotcha:** after editing navigation files, the web preview can keep serving the old `navigate` route
+  chunk (lazy bundles). Restart it with `--clear` before trusting what it shows.
 
 ## Alerts
 

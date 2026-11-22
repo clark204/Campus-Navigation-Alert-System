@@ -74,6 +74,7 @@ function App({ fontsReady }: { fontsReady: boolean }) {
 /**
  * Which screens exist depends on the session (Expo Router protected routes), like the website's areas:
  * - guests: Welcome, Sign in, Register, Forgot password and the campus map
+ * - guests and both signed-in areas: Navigate (walking directions)
  * - signed in with an unverified email: Verify email (until "Skip for now")
  * - the admin: the admin layout (app/admin: Dashboard, Map, Account tabs)
  * - students, faculty and staff: the portal (app/portal: Home, Map, Account tabs)
@@ -106,6 +107,11 @@ function RootNavigator() {
       </Stack.Protected>
       <Stack.Protected guard={portal}>
         <Stack.Screen name="portal" />
+      </Stack.Protected>
+      {/* Navigation, for guests and both signed-in areas. Listed last, so after a sign-in or sign-out the redirect still
+          lands on that area's own first screen, never here. */}
+      <Stack.Protected guard={user === null || admin || portal}>
+        <Stack.Screen name="navigate" />
       </Stack.Protected>
     </Stack>
   );
