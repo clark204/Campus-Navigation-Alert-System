@@ -1,0 +1,36 @@
+# EAS uploads the whole repo from here. The app only needs CNAS-mobile
+# and the shared navigation code in CNAS-web/resources/js.
+# This file replaces .gitignore for EAS, so the mobile ignores are repeated below.
+
+# Skip CNAS-web except resources/js
+CNAS-web/*
+!CNAS-web/resources/
+CNAS-web/resources/*
+!CNAS-web/resources/js/
+
+# Dependencies and generated folders
+node_modules/
+CNAS-mobile/.expo/
+CNAS-mobile/dist/
+CNAS-mobile/web-build/
+CNAS-mobile/android/
+CNAS-mobile/ios/
+CNAS-mobile/example/
+
+# Secrets (google-services.json comes from the EAS file variable)
+CNAS-mobile/.env
+CNAS-mobile/.env*.local
+CNAS-mobile/google-services.json
+*.jks
+*.keystore
+*.p8
+*.p12
+*.key
+*.pem
+*-service-account*.json
+*firebase-adminsdk*.json
+
+# Local tools
+.claude/
+CNAS-mobile/.claude/
+.DS_Store

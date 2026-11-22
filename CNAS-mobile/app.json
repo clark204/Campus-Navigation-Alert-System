@@ -80,6 +80,17 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "e65d4e97-23f2-4e19-9db0-11a44738e8a1"
+      }
+    },
+    "owner": "c.persona"
   }
 }
