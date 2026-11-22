@@ -3,6 +3,8 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { useAlerts } from '@/lib/alerts';
+import { isAdmin } from '@/lib/roles';
+import { useSession } from '@/lib/session';
 import { affectedCodes, incidentPoint, projectionFor, useCampusMap } from '@/lib/campus-map';
 import { colors } from '@/theme';
 import { CampusSvg } from './campus-svg';
@@ -15,6 +17,7 @@ const SIZE = 68;
 export function MiniMap() {
   const { map } = useCampusMap();
   const { banner } = useAlerts();
+  const { user } = useSession();
   const projection = useMemo(() => (map ? projectionFor(map) : null), [map]);
 
   // The campus fills the circle: the furthest outline point touches the edge.
@@ -24,7 +27,8 @@ export function MiniMap() {
 
   return (
     <Pressable
-      onPress={() => router.push('/map')}
+      // Signed in, the map is a tab of the admin or portal layout; guests get the map screen.
+      onPress={() => router.navigate(user === null ? '/map' : isAdmin(user) ? '/admin/map' : '/portal/map')}
       accessibilityRole="button"
       accessibilityLabel={incident ? 'Campus map. An emergency is marked on it.' : 'Campus map'}
       hitSlop={6}

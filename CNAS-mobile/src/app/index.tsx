@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { AlertBanner } from '@/components/alert-banner';
 import { EmergencyContacts } from '@/components/emergency-contacts';
 import { MiniMap } from '@/components/mini-map';
+import { PushCard } from '@/components/push-card';
 import { Button, Screen } from '@/components/ui';
 import { colors, fonts, space, type } from '@/theme';
 
@@ -27,6 +28,8 @@ export default function Welcome() {
         <Button title="Sign in" onPress={() => router.push('/sign-in')} />
         <Button title="Create account" variant="quiet" onPress={() => router.push('/register')} />
       </View>
+
+      <PushCard compact />
 
       <EmergencyContacts />
     </Screen>

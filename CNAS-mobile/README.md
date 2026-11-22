@@ -6,7 +6,8 @@ TypeScript. It talks only to the CNAS-web API (`../CNAS-web/routes/api.php`).
 Version 1 covers sign-in, COR registration, email verification, forgot password, in-app emergency alerts and a campus
 map to look at. Navigation is not built yet: the map screen links to Navigate on the website.
 
-Everything runs in Expo Go (no development build needed).
+Everything except push notifications runs in Expo Go. Push alerts (the phone rings for an emergency while CNAS is
+closed) need the development build or the preview APK: see "Push alerts" below.
 
 ## Setup
 
@@ -18,8 +19,8 @@ Everything runs in Expo Go (no development build needed).
    - `php artisan serve --host=0.0.0.0 --port=8000`
    - a queue worker (`php artisan queue:work`), or no verification or reset email is ever sent
    - Windows may ask to let PHP through the firewall: allow it on private networks.
-4. Start the app: `npx expo start`, then scan the QR code with Expo Go (Android) or the Camera app (iPhone). The phone
-   must be on the same Wi-Fi as the PC.
+4. Start the app: `npx expo start --go` for Expo Go (scan the QR code with Expo Go), or `npx expo start` for the
+   development build (see "Push alerts"). The phone must be on the same Wi-Fi as the PC.
 
 After changing `.env`, reload the app (press `r` in the Expo terminal).
 
@@ -34,11 +35,22 @@ Before finishing any change: `npx expo lint` and `npx tsc --noEmit`.
 | Create account: privacy notice and consent, COR upload, check details (name re-split only), email and password, then signs in | `register.tsx` | `POST /register/cor`, `POST /register`, `POST /login` |
 | Verify email: 6-digit code, resend with countdown, "Skip for now" | `verify-email.tsx` | `POST /email/verify`, `POST /email/resend` |
 | Forgot password: send code, enter code, new password | `forgot-password.tsx` | `POST /password/forgot`, `/password/verify-code`, `/password/reset` |
-| Home: greeting, college, alert banner, emergency numbers, mini-map, sign out | `home.tsx` | `POST /logout` |
-| Campus map: pinch to zoom, drag, double-tap to zoom in or out, building names, link to Navigate on the website (open to guests) | `map.tsx` | `GET /map` |
+| Campus map for guests, with Back (signed in, it is the Map tab) | `map.tsx` | `GET /map` |
+| **Admin layout** (Dashboard, Map, Account tabs) | `admin/_layout.tsx` | |
+| Admin dashboard: what students see now (alert or "No active alert"), Send an alert, Alerts, Accounts, Concerns and Settings (open the website), emergency numbers | `admin/index.tsx` | `GET /alerts/active` |
+| **Portal layout** for students, faculty and staff (Home, Map, Account tabs) | `portal/_layout.tsx` | |
+| Portal home: greeting, college, alert banner, emergency numbers, schedule, saved places and help (open the website) | `portal/index.tsx` | |
+| Map tab (both): pinch to zoom, drag, double-tap, building names, link to Navigate on the website | `admin/map.tsx`, `portal/map.tsx` (`components/campus-map-screen.tsx`) | `GET /map` |
+| Account tab (both): name, role, email (verified or not), ID, college, program, alerts on this phone, website settings, **Sign out** | `admin/account.tsx`, `portal/account.tsx` (`components/account-screen.tsx`) | `POST /logout` |
 
-`_layout.tsx` decides which screens exist (Expo Router protected routes): guests see Welcome, Sign in, Create account
-and Forgot password. Signed in, Verify email comes first while `email_verified` is false, then Home. On start the
+`_layout.tsx` decides which screens exist (Expo Router protected routes), with exactly one area open at a time:
+- **guests:** Welcome, Sign in, Create account, Forgot password and the map
+- **unverified email:** Verify email (until "Skip for now", which lasts until the app is closed)
+- **the admin:** the admin layout (`/admin`)
+- **students, faculty and staff:** the portal (`/portal`), like the website's areas
+
+Every top-level screen must stay inside a guard: when the session changes, Expo Router jumps to the first screen still
+allowed, and an unguarded one would win (signing in used to land on the map, with no way to sign out). On start the
 saved token is checked with `GET /me`. A 401 from any call signs out and goes back to Welcome. Offline, the last known
 user is shown.
 
@@ -89,7 +101,70 @@ checks again right away when the app comes back. The rules match the website (`C
   closed.
 
 Each takeover or popup shows once per alert version on a phone (remembered in AsyncStorage). Guests see everything
-except "I'm safe". There are no push notifications yet: alerts only arrive while the app is open.
+except "I'm safe". "I'm safe" shows as done when the user already answered on the website or another phone
+(`my_safety_status` from the server).
+
+## Push alerts
+
+How it works:
+- **Channels:** the app creates three Android notification channels (`src/lib/push.ts`):
+  - `emergency`: loudest, `alarm.wav`, the web's vibration pattern, shows on the lock screen
+  - `drill`: `drill.wav`
+  - `warning`: `chime.wav`, also used for advisories and "All clear"
+- **Registering:** it sends its Expo push token to `POST /api/push-tokens` on every start and after sign-in, which links the phone to the account. Sign-out tells the server to unlink it, and the phone keeps getting alerts as a guest. The switch on Home turns alerts off (`DELETE /api/push-tokens`) or on again.
+- **Asking:** after the intro, a "Turn on emergency alerts" screen explains the permission once, before Android asks. If the answer is no, Home (and Welcome) show a "Turn on alerts" card that asks again or opens the phone's settings.
+- **Tapping:** tapping a notification opens the app and shows that alert at once (the takeover for an emergency), even if the phone already showed it. A push that arrives while the app is open makes it check `/api/alerts/active` right away.
+- **Expo Go:** Expo Go can't get a push token on Android, so the app skips push (and the channels, since Expo Go has none of the custom sounds) there and logs a note in the console. Everything else works.
+- **Channel fallback:** if Android refuses a channel, the app tries again without the alarm-stream audio settings, then with the default sound, and logs a warning. Android keeps a channel's sound once it exists, so after such a fallback clear the app's data (or reinstall) to get the custom sounds.
+
+### What you do once
+
+You need an Expo account (free) and a Google account for Firebase. Run every command in `CNAS-mobile`.
+
+1. **Link the project to Expo.**
+   - `npx eas-cli@latest login`
+   - `npx eas-cli@latest init`: this creates the project on expo.dev and adds `extra.eas.projectId` (and `owner`) to `app.json`.
+   - If it says it can't edit the config because of `app.config.js`, copy the project ID it prints into `app.json` under `expo.extra.eas.projectId` yourself.
+2. **Create the Firebase project.**
+   - At https://console.firebase.google.com, add a project (for example "CNAS"; Google Analytics can stay off).
+   - In the project, add an **Android app** with the package name `online.tccmapsafe.cnas` (it must match `app.json`). The SHA-1 is not needed.
+   - Download `google-services.json` and put it in `CNAS-mobile/`. It is in `.gitignore`, so it is never committed.
+3. **Give the file to EAS** (cloud builds can't see ignored files). Run once for each build profile:
+   - `npx eas-cli@latest env:create --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json --visibility secret --environment development`
+   - the same with `--environment preview`
+   - Or on expo.dev: your project, Environment variables, add a variable of type **File** named `GOOGLE_SERVICES_JSON`, for development and preview.
+   - `app.config.js` reads it; local builds use `./google-services.json` directly.
+4. **Upload the FCM V1 key** (Firebase's permission for Expo to send to your phones).
+   - In Firebase: Project settings, Service accounts, **Generate new private key**. Save the JSON as `cnas-firebase-service-account.json`. Don't commit it: `*-service-account*.json` is in `.gitignore`.
+   - Upload it with `npx eas-cli@latest credentials`: Android, any profile, Google Service Account, "Manage your Google Service Account Key for Push Notifications (FCM V1)", Set up, Upload a new service account key, and pick the file.
+   - Or on expo.dev: Project settings, Credentials, Android, `online.tccmapsafe.cnas`, FCM V1 service account key, upload.
+5. **Build the development build:** `npx eas-cli@latest build --profile development --platform android`. It builds in the cloud (about 10 to 20 minutes) and ends with a link and a QR code. Open it on the phone, download the APK, and install it (allow "Install unknown apps" for the browser when Android asks).
+6. **Prepare the site** (in `CNAS-web`):
+   - `php artisan migrate` (adds `device_push_tokens`)
+   - `php artisan serve --host=0.0.0.0 --port=8000`
+   - `php artisan queue:work` in a second terminal. Every push goes through the queue, and so does the receipt check 15 minutes later. Before starting a worker, check the `jobs` table for old `SendAlertPush` jobs, which would push old alerts.
+   - `EXPO_ACCESS_TOKEN` in `CNAS-web/.env` is only needed if you turn on "Enhanced push security" at expo.dev.
+
+### Every time you work on the app
+
+- **Start:** `npx expo start` in `CNAS-mobile`. With `expo-dev-client` installed it targets the development build. Open the "CNAS" app on the phone (the development build, not Expo Go) and pick the server, or scan the QR code. JS changes reload as usual.
+- **Rebuild** (step 5) only after changing `app.json`, `app.config.js`, a config plugin or a package with native code.
+- **Expo Go instead:** `npx expo start --go`.
+- **Demo APK:** `npx eas-cli@latest build --profile preview --platform android` makes a standalone app with no PC needed. It talks to `https://tcc-mapsafe.online` (`eas.json`), so that site needs this push code, the migration and a queue worker.
+
+### Test list (development build, signed in on the phone)
+
+1. **Locked phone, emergency:** lock the phone and send an emergency from Admin. Within seconds: the alarm sound, vibration and "EMERGENCY · FIRE" on the lock screen, even on silent if the phone allows alarms.
+2. **Drill:** send an emergency with "Drill" ticked. You should hear the softer drill sound and see the title "DRILL · …".
+3. **Warning:** send a warning. You should hear the chime, and nothing rings like an alarm.
+4. **All clear replaces the alert:** resolve the emergency from step 1. The notification turns into "ALL CLEAR · FIRE" in place; it should not be a second notification.
+5. **Tap opens the takeover:** send an emergency, dismiss the takeover in the app, close the app, then tap the notification. The app opens straight into the red takeover. Try it from a fully closed app too.
+6. **Push while open:** with the app open on Home, send an emergency. The takeover appears at once, not after up to 15 s, and there is no second system banner.
+7. **Sign out keeps alerts:** sign out, lock the phone, send an alert. It still arrives. In the database, the phone's `device_push_tokens` row has `user_id` null.
+8. **Alerts off:** on Home, turn off "Emergency alerts on this phone", then send an alert. No notification arrives (the row is gone), but the in-app banner still shows when CNAS is open. Turn it back on and the row comes back.
+9. **Second phone marks safe:** sign in with the same account on another phone or on the website, send an emergency, and tap "I'm safe" there. Within 15 s the first phone's button shows "Marked safe".
+10. **Permission said no:** on a fresh install, answer "Not now" or "Don't allow". Home shows "Turn on alerts". Tapping it asks again, or opens the phone's settings once Android stops asking.
+11. **Expo Go still works:** `npx expo start --go`. The app runs, and the console says push is skipped.
 
 ## Code
 
@@ -97,5 +172,9 @@ except "I'm safe". There are no push notifications yet: alerts only arrive while
   become per-field messages. 429 says how long to wait, and offline gives a plain message.
 - `src/lib/session.tsx`: token in `expo-secure-store`, sign-in and sign-out, the current user.
 - `src/lib/alarm.ts`: sounds (`assets/sounds`, the same files as the website) via `expo-audio`, and vibration.
-- `src/components/`: shared UI, alert banner and overlays, emergency numbers, intro and logo, mini-map and campus drawing.
+- `src/lib/push.ts`, `src/lib/push-context.tsx`: channels, permission, the Expo push token, notification taps.
+- `app.config.js`: adds `google-services.json` (from EAS or the local file) to `app.json`. `eas.json`: the
+  `development` (development client, internal APK) and `preview` (internal APK for the demo) build profiles.
+- `src/components/`: shared UI, alert banner and overlays, emergency numbers, intro and logo, mini-map and campus drawing,
+  the alerts prompt and the alerts card.
 - `src/theme.ts`: the CNAS-web colors and the Instrument Sans type scale. Light mode only.

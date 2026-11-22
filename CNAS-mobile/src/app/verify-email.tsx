@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { Text } from 'react-native';
 
@@ -18,7 +17,7 @@ const waitFrom = (message: string | undefined) => Number(message?.match(/wait (\
  * student use the map and alerts.
  */
 export default function VerifyEmail() {
-  const { user, setUser, signOut } = useSession();
+  const { user, setUser, signOut, setVerifyLater } = useSession();
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [sending, setSending] = useState(false);
@@ -86,7 +85,7 @@ export default function VerifyEmail() {
       <Button title="Verify email" loadingTitle="Checking…" loading={busy} onPress={verify} />
       <ResendButton key={resend.key} waitSeconds={resend.wait} busy={sending} onPress={sendAgain} />
 
-      <Button title="Skip for now" variant="link" onPress={() => router.replace('/home')} />
+      <Button title="Skip for now" variant="link" onPress={() => setVerifyLater(true)} />
       <Body muted>Emergency alerts work while you wait. Wrong email address? Sign in on the CNAS website to fix it.</Body>
       <Button title="Not your account? Sign out" variant="link" onPress={signOut} />
     </Screen>
