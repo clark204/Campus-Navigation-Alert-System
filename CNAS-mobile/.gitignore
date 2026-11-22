@@ -47,3 +47,11 @@ CLAUDE.md
 # generated native folders
 /ios
 /android
+
+# secrets and signing
+.env
+!.env.example
+*.keystore
+google-services.json
+GoogleService-Info.plist
+*-service-account*.json
