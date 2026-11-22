@@ -11,4 +11,5 @@ export const COLORS = {
     entrance: '#581825',
 };
 
-export const METERS_PER_FLOOR = 3.5;
+// Lives with the navigation modules (shared with the mobile app); re-exported for the map scripts.
+export { METERS_PER_FLOOR } from './navigation/constants.js';

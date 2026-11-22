@@ -11,7 +11,7 @@ Read this before touching buildings, paths, stairs, rooms, or the map export and
 - The Buildings and Rooms lists search as you type and show 10 per page. Every row is in the page, so the search and paging run in the browser (`table-search.js`) with no request. The building chips on Rooms are page links (`?building=`).
 - Photos are served in `/api/map` (each building and room feature has `photos`: kind, image, thumb, width, height). They are not in `campus.geojson` and not on /navigate yet.
 - 360° photos are not in `campus.geojson`; they have their own upload and import.
-- Route calculation stays in the browser. The server only stores and serves the map.
+- Route calculation stays on the client (the browser, and the mobile app with the same modules). The server only stores and serves the map.
 - Scope agreed with the instructor: focus on the IT department. Rooms have an `is_it` flag.
 - Students do not know building numbers or stair labels, so each building and path has a `landmark_name` (the name students actually use) for directions.
 - Colors: buildings are brick red, the campus and grounds are green. Alarm-affected buildings are drawn at full alarm red with a thick dark edge, because their fill is barely darker than a normal building (about 1.3:1).

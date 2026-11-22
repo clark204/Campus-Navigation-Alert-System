@@ -1,4 +1,4 @@
-import { METERS_PER_FLOOR } from '../map-style.js';
+import { METERS_PER_FLOOR } from './constants.js';
 import { meters, projectOnSegment, sameCoord } from './geo.js';
 
 // Path ends closer than this to another path are treated as connected.

@@ -26,6 +26,11 @@ All in `resources/js/navigation/`, page `resources/views/pages/navigate-page.bla
 - `main.js`: wires it all to the MapLibre map; has a debug panel
 Packages: MapLibre GL and single Turf modules (along, bearing, distance, length, nearest-point-on-line). Do not add the full Turf bundle.
 
+## Mobile app (CNAS-mobile)
+- The app imports these modules straight from this folder (its `metro.config.js`, alias `@nav/`), so it gives the same routes and directions. Shared: `constants`, `evacuation`, `geo`, `gps`, `graph`, `instructions`, `legs`, `motion`, `position`, `route-panoramas`, `router`, `simulate`, `steps`, `storage`, `tracker`, `voice`. Only `main.js` (and the other page scripts) may touch the DOM or MapLibre.
+- Those modules import only each other and single Turf modules. `METERS_PER_FLOOR` lives in `navigation/constants.js` for that reason (`map-style.js` re-exports it). `tests/js/navigation-shared.test.js` fails when a shared module imports anything else or needs a DOM to load.
+- The app ports `main.js`'s session (texts, reroute, manual mode, legs) to `CNAS-mobile/src/lib/navigation/session.ts`. Change both when the behaviour changes.
+
 ## Panoramas (360 photos)
 - Shot about every 3 m along walkways, named p1, p2, ... Admin places each one on the map.
 - Table `panoramas`: code, name, lat/lng, floor, north_offset, is_visible, image_path, thumb_path
