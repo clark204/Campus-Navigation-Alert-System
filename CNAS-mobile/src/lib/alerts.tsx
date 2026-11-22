@@ -32,6 +32,13 @@ type Alerts = {
   isMarkedSafe: (alert: Alert) => boolean;
   /** POST /api/alerts/{id}/safe. Throws ApiError with the message to show (409 when the alert is over). */
   markSafe: (alert: Alert) => Promise<void>;
+  /** Ask the server now instead of waiting for the next 15 s poll (a push arrived). */
+  check: () => Promise<void>;
+  /**
+   * A tapped notification: check now and show that alert again even if this phone already showed it (the takeover
+   * for an emergency, the popup for a warning).
+   */
+  showAlert: (alertId: number) => void;
 };
 
 type MarkedSafe = { userId: number | null; ids: number[] };
@@ -46,6 +53,8 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
   // Alert ids this user marked safe on this phone, with whose answers they are.
   const [markedSafe, setMarkedSafe] = useState<MarkedSafe>({ userId: null, ids: [] });
   const [silencedVersion, setSilencedVersion] = useState<string | null>(null);
+  // An alert whose notification was tapped: shown again even if already seen, until dismissed.
+  const [reopenId, setReopenId] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -99,8 +108,10 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(timeout);
   }, [alert, now]);
 
-  const takeover = loaded && shouldTakeOver(alert, seen) ? alert : null;
-  const popup = loaded && !takeover && shouldPopUp(alert, seen) ? alert : null;
+  // A tapped notification shows its alert again: as if this phone had not seen it yet.
+  const seenNow = alert && reopenId === alert.id ? seen.filter((key) => key !== seenKey(alert)) : seen;
+  const takeover = loaded && shouldTakeOver(alert, seenNow) ? alert : null;
+  const popup = loaded && !takeover && shouldPopUp(alert, seenNow) ? alert : null;
   const sounding = takeover !== null && silencedVersion !== takeover.version;
   const soundingDrill = sounding && takeover.is_drill;
 
@@ -132,11 +143,22 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
 
   const dismissTakeover = useCallback(() => {
     if (takeover) markSeen(takeover);
+    setReopenId(null);
   }, [takeover, markSeen]);
 
   const dismissPopup = useCallback(() => {
     if (popup) markSeen(popup);
+    setReopenId(null);
   }, [popup, markSeen]);
+
+  const showAlert = useCallback(
+    (alertId: number) => {
+      setReopenId(alertId);
+      setSilencedVersion(null);
+      check();
+    },
+    [check],
+  );
 
   const dismissBanner = useCallback((closed: Alert) => {
     setDismissed((list) => {
@@ -164,9 +186,12 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
     [check, userId],
   );
 
+  // Answered on this phone, or (my_safety_status from the server) on the website or another phone.
   const isMarkedSafe = useCallback(
-    (target: Alert) => userId !== null && markedSafe.userId === userId && markedSafe.ids.includes(target.id),
-    [markedSafe, userId],
+    (target: Alert) =>
+      userId !== null &&
+      ((markedSafe.userId === userId && markedSafe.ids.includes(target.id)) || (alert?.id === target.id && alert.my_safety_status === 'safe')),
+    [markedSafe, userId, alert],
   );
 
   const value = useMemo<Alerts>(
@@ -181,8 +206,10 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
       dismissBanner,
       isMarkedSafe,
       markSafe,
+      check,
+      showAlert,
     }),
-    [alert, dismissed, now, takeover, popup, sounding, silence, dismissTakeover, dismissPopup, dismissBanner, isMarkedSafe, markSafe],
+    [alert, dismissed, now, takeover, popup, sounding, silence, dismissTakeover, dismissPopup, dismissBanner, isMarkedSafe, markSafe, check, showAlert],
   );
 
   return <AlertsContext.Provider value={value}>{children}</AlertsContext.Provider>;

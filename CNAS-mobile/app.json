@@ -20,7 +20,8 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "VIBRATE"
-      ]
+      ],
+      "package": "online.tccmapsafe.cnas"
     },
     "web": {
       "output": "server",
@@ -43,6 +44,19 @@
         {
           "microphonePermission": false,
           "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#B3121B",
+          "defaultChannel": "warning",
+          "sounds": [
+            "./assets/sounds/alarm.wav",
+            "./assets/sounds/drill.wav",
+            "./assets/sounds/chime.wav"
+          ]
         }
       ]
     ],

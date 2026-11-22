@@ -67,4 +67,6 @@ export type Alert = {
   resolved_at: string | null;
   resolved_message: string | null;
   banner_expires_at: string | null;
+  /** Only when signed in: "safe" when this user already tapped "I'm safe" (any device). Null outside an emergency. */
+  my_safety_status?: 'safe' | null;
 };

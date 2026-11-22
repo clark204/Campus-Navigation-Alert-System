@@ -2,6 +2,7 @@ import * as Device from 'expo-device';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { api, ApiError, setAuthToken, setUnauthorizedHandler } from './api';
+import { storedPushToken } from './push';
 import { clearToken, getToken, readJson, removeKeys, saveToken, writeJson } from './storage';
 import type { User } from './types';
 
@@ -18,6 +19,12 @@ type Session = {
   signIn: (login: string, password: string) => Promise<User>;
   signOut: () => Promise<void>;
   setUser: (user: User) => void;
+  /**
+   * "Skip for now" on Verify email: the portal opens while the email is still unverified. Only for this run of the app,
+   * so the verify screen comes back on the next start (like the website asks again).
+   */
+  verifyLater: boolean;
+  setVerifyLater: (later: boolean) => void;
 };
 
 const SessionContext = createContext<Session | null>(null);
@@ -30,6 +37,7 @@ function deviceName(): string {
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [user, setUserState] = useState<User | null>(null);
+  const [verifyLater, setVerifyLater] = useState(false);
 
   const setUser = useCallback((next: User) => {
     setUserState(next);
@@ -39,6 +47,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const forget = useCallback(async () => {
     setAuthToken(null);
     setUserState(null);
+    setVerifyLater(false);
     await clearToken();
     await removeKeys([USER_CACHE_KEY, MARKED_SAFE_KEY]);
   }, []);
@@ -78,6 +87,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       });
       await saveToken(result.token);
       setAuthToken(result.token);
+      setVerifyLater(false);
       setUser(result.user);
       return result.user;
     },
@@ -86,7 +96,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     try {
-      await api('/logout', { method: 'POST' });
+      // This phone keeps getting alerts, as a guest: the server only unlinks it from the account.
+      const expoToken = await storedPushToken();
+      await api('/logout', { method: 'POST', body: expoToken ? { expo_token: expoToken } : undefined });
     } catch {
       // Offline or already expired: the token is forgotten on this phone either way.
     }
@@ -94,8 +106,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [forget]);
 
   const value = useMemo(
-    () => ({ ready, user, signIn, signOut, setUser }),
-    [ready, user, signIn, signOut, setUser],
+    () => ({ ready, user, signIn, signOut, setUser, verifyLater, setVerifyLater }),
+    [ready, user, signIn, signOut, setUser, verifyLater],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
