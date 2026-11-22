@@ -1,56 +1,101 @@
-# Welcome to your Expo app 👋
+# CNAS mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+The phone app for CNAS (Campus Navigation & Alert System), Tagoloan Community College. Expo SDK 58, Expo Router,
+TypeScript. It talks only to the CNAS-web API (`../CNAS-web/routes/api.php`).
 
-## Get started
+Version 1 covers sign-in, COR registration, email verification, forgot password, in-app emergency alerts and a campus
+map to look at. Navigation is not built yet: the map screen links to Navigate on the website.
 
-1. Install dependencies
+Everything runs in Expo Go (no development build needed).
 
-   ```bash
-   npm install
-   ```
+## Setup
 
-2. Start the app
+1. Install packages: `npm install` (add new ones with `npx expo install <package>`, never `npm install <package>`).
+2. Copy `.env.example` to `.env` and set `EXPO_PUBLIC_API_URL` to the CNAS-web site, without `/api`:
+   - local testing: `http://<your PC's LAN IP>:8000`, for example `http://192.168.1.2:8000`
+   - production: `https://tcc-mapsafe.online`
+3. Start the site so the phone can reach it (in `CNAS-web`):
+   - `php artisan serve --host=0.0.0.0 --port=8000`
+   - a queue worker (`php artisan queue:work`), or no verification or reset email is ever sent
+   - Windows may ask to let PHP through the firewall: allow it on private networks.
+4. Start the app: `npx expo start`, then scan the QR code with Expo Go (Android) or the Camera app (iPhone). The phone
+   must be on the same Wi-Fi as the PC.
 
-   ```bash
-   npx expo start
-   ```
+After changing `.env`, reload the app (press `r` in the Expo terminal).
 
-In the output, you'll find options to open the app in a
+Before finishing any change: `npx expo lint` and `npx tsc --noEmit`.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Screens (`src/app`)
 
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+| Screen | File | API |
+| --- | --- | --- |
+| Welcome: Sign in, Create account, emergency numbers (tap to call), alert banner, mini-map | `index.tsx` | `GET /emergency-contacts` |
+| Sign in with ID number or email | `sign-in.tsx` | `POST /login` (device name = phone model) |
+| Create account: privacy notice and consent, COR upload, check details (name re-split only), email and password, then signs in | `register.tsx` | `POST /register/cor`, `POST /register`, `POST /login` |
+| Verify email: 6-digit code, resend with countdown, "Skip for now" | `verify-email.tsx` | `POST /email/verify`, `POST /email/resend` |
+| Forgot password: send code, enter code, new password | `forgot-password.tsx` | `POST /password/forgot`, `/password/verify-code`, `/password/reset` |
+| Home: greeting, college, alert banner, emergency numbers, mini-map, sign out | `home.tsx` | `POST /logout` |
+| Campus map: pinch to zoom, drag, double-tap to zoom in or out, building names, link to Navigate on the website (open to guests) | `map.tsx` | `GET /map` |
 
-## Get a fresh project
+`_layout.tsx` decides which screens exist (Expo Router protected routes): guests see Welcome, Sign in, Create account
+and Forgot password. Signed in, Verify email comes first while `email_verified` is false, then Home. On start the
+saved token is checked with `GET /me`. A 401 from any call signs out and goes back to Welcome. Offline, the last known
+user is shown.
 
-When you're ready, run:
+## Intro
 
-```bash
-npm run reset-project
-```
+Every cold start shows a short intro over the screens while the session and fonts load:
+- a pin drops onto the logo's peak
+- gold rings spread from it
+- "CNAS" and "Campus Navigation & Alert System" fade in
+- everything fades into Welcome or Home
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+It lasts about 1.8 s (`components/intro.tsx`).
+- Tap anywhere to skip it.
+- With the phone's reduce motion setting on, it is only a short fade.
+- It never holds back an emergency: the takeover is a Modal on top, and the intro leaves as soon as one shows.
 
-### Other setup steps
+The native splash (`app.json`, expo-splash-screen) uses the same background (`#FAF8F5`) and the same logo at the same size (`assets/images/splash-logo.png`). The intro hides the splash on its first frame, so there is no flash. The logo comes from `CNAS-web/public/logo/nav-logo.svg` (copied to `assets/images/logo.svg` and drawn by `components/logo.tsx`).
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## Campus map
 
-## Learn more
+`src/lib/campus-map.ts` loads `GET /api/map` and keeps only the building outlines, paths and landmark names.
+- **Cache:** saved in AsyncStorage with the response's ETag. The next load sends `If-None-Match`, so an unchanged map comes back as a 304 with no download. It is checked again at most every 5 minutes, and offline the saved copy is used.
+- **Drawing:** `components/campus-svg.tsx` draws it with react-native-svg, no tiles, in the web map's colors:
+  - buildings brick red
+  - campus and grounds green
+  - evacuation area darker green
+  - facilities beige
+  - walkways white, gates gold
+  - buildings named by an active emergency in alarm red
+- **Mini-map** (`components/mini-map.tsx`, Welcome and Home, top right): a 68 px circle fitted to the campus outline. During an active emergency with a location, the incident shows as a pulsing red dot (still with reduce motion on).
+- **Map screen** (`app/map.tsx`): pinch and drag (react-native-gesture-handler 3 hooks with Reanimated), double-tap to zoom in or reset. The incident gets a dot and its danger radius.
+- **Names:** landmark names without "the", else the building name. A name only appears once the zoom is high enough that it doesn't overlap a bigger building's name.
 
-To learn more about developing your project with Expo, look at the following resources:
+Reanimated shared values use `.get()` / `.set()`, not `.value`: the React Compiler is on, and it reads `.value` during render otherwise (Reanimated warns about that).
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Alerts
 
-## Join the community
+`src/lib/alerts.tsx` polls `GET /alerts/active` every 15 s while the app is open. It stops in the background and
+checks again right away when the app comes back. The rules match the website (`CNAS-web/docs/alerts.md`,
+`src/lib/alert-rules.ts`):
 
-Join our community of developers creating universal apps.
+- **Emergency**: full-screen red takeover with a looping alarm and vibration until the first tap (softer sound for
+  drills, which also show DRILL and hazard tape), "I'm safe" for signed-in users (`POST /alerts/{id}/safe`), then the
+  red banner.
+- **Warning**: orange banner, plus a one-time popup with a chime.
+- **Advisory**: yellow banner only.
+- **Ended**: green "All clear" or "False alarm" banner with the admin's message until `banner_expires_at`. It can be
+  closed.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Each takeover or popup shows once per alert version on a phone (remembered in AsyncStorage). Guests see everything
+except "I'm safe". There are no push notifications yet: alerts only arrive while the app is open.
+
+## Code
+
+- `src/lib/api.ts`: the one `api()` helper. JSON, `Accept: application/json` and the bearer token. Laravel 422 errors
+  become per-field messages. 429 says how long to wait, and offline gives a plain message.
+- `src/lib/session.tsx`: token in `expo-secure-store`, sign-in and sign-out, the current user.
+- `src/lib/alarm.ts`: sounds (`assets/sounds`, the same files as the website) via `expo-audio`, and vibration.
+- `src/components/`: shared UI, alert banner and overlays, emergency numbers, intro and logo, mini-map and campus drawing.
+- `src/theme.ts`: the CNAS-web colors and the Instrument Sans type scale. Light mode only.
