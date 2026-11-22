@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enums\AlertSeverity;
+use App\Enums\AlertStatus;
 use App\Enums\SafetyStatus;
 use App\Models\Alert;
 use App\Models\SafetyCheck;
@@ -117,6 +119,48 @@ class SafetyCheckTest extends TestCase
         }
 
         $this->postJson(route('api.alerts.safe', $alert))->assertTooManyRequests();
+    }
+
+    public function test_the_app_sees_an_answer_given_on_another_device(): void
+    {
+        $alert = Alert::factory()->create();
+        $student = User::factory()->create();
+        $token = $student->createToken('Pixel')->plainTextToken;
+
+        $this->withToken($token)->getJson(route('api.alerts.active'))->assertJsonPath('data.my_safety_status', null);
+
+        SafetyCheck::markSafe($alert, $student); // "I'm safe" on the website or another phone.
+
+        $this->withToken($token)->getJson(route('api.alerts.active'))
+            ->assertOk()
+            ->assertHeader('Cache-Control', 'no-store, private')
+            ->assertJsonPath('data.id', $alert->id)
+            ->assertJsonPath('data.my_safety_status', 'safe');
+    }
+
+    public function test_guests_never_get_a_safety_status(): void
+    {
+        $alert = Alert::factory()->create();
+        SafetyCheck::markSafe($alert, User::factory()->create());
+
+        $this->getJson(route('api.alerts.active'))->assertJsonMissingPath('data.my_safety_status');
+        // A bad token answers like a guest: nothing about anyone's answer.
+        $this->withToken('1|not-a-real-token')->getJson(route('api.alerts.active'))->assertJsonPath('data.my_safety_status', null);
+    }
+
+    public function test_the_safety_status_is_only_looked_up_during_an_active_emergency(): void
+    {
+        $student = User::factory()->create();
+        $token = $student->createToken('Pixel')->plainTextToken;
+        $alert = Alert::factory()->warning()->create();
+        SafetyCheck::markSafe($alert, $student);
+
+        $this->withToken($token)->getJson(route('api.alerts.active'))->assertJsonPath('data.my_safety_status', null);
+
+        $alert->forceFill(['status' => AlertStatus::Resolved, 'resolved_at' => now(), 'severity' => AlertSeverity::Emergency])->save();
+        $this->withToken($token)->getJson(route('api.alerts.active'))
+            ->assertJsonPath('data.status', 'resolved')
+            ->assertJsonPath('data.my_safety_status', null);
     }
 
     public function test_answers_are_deleted_thirty_days_after_the_alert_ends(): void

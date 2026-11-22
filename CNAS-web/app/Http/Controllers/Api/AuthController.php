@@ -7,6 +7,7 @@ use App\Enums\LoginChannel;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\LoginRequest;
 use App\Http\Resources\UserResource;
+use App\Models\DevicePushToken;
 use App\Services\EmailCodes;
 use App\Services\LoginActivityLogger;
 use App\Services\LoginService;
@@ -46,11 +47,20 @@ class AuthController extends Controller
     }
 
     /**
-     * Revoke only the token used for this request; the user's other devices stay signed in.
+     * Revoke only the token used for this request; the user's other devices stay signed in. The app sends its
+     * `expo_token`: that phone keeps getting alerts, as a guest (no longer linked to this account).
      */
     public function logout(Request $request, LoginActivityLogger $activity): Response
     {
-        $token = $request->user()->currentAccessToken();
+        $request->validate(['expo_token' => ['nullable', 'string', 'max:255']]);
+        $user = $request->user();
+        $token = $user->currentAccessToken();
+
+        if ($request->filled('expo_token')) {
+            DevicePushToken::where('expo_token', $request->string('expo_token')->toString())
+                ->where('user_id', $user->id)
+                ->update(['user_id' => null]);
+        }
 
         $activity->recordTokenLogout($token);
         $token->delete();

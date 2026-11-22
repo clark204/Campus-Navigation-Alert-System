@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    // The mobile app's alert push (App\Services\ExpoPush). Optional: only when Enhanced push security is on at expo.dev.
+    'expo' => [
+        'access_token' => env('EXPO_ACCESS_TOKEN'),
+    ],
+
 ];

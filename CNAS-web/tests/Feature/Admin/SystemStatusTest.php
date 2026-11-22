@@ -5,6 +5,7 @@ namespace Tests\Feature\Admin;
 use App\Enums\Semester;
 use App\Enums\UserRole;
 use App\Models\AcademicTerm;
+use App\Models\DevicePushToken;
 use App\Models\User;
 use Database\Seeders\CampusMapSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -81,6 +82,26 @@ class SystemStatusTest extends TestCase
             'Set VAPID_SUBJECT in .env to “mailto:” plus the admin email or to the https site address, then run “php artisan config:clear”.');
     }
 
+    public function test_the_expo_access_token_is_optional_and_never_shown(): void
+    {
+        config(['services.expo.access_token' => null]);
+        $this->assertCheck($this->settingsPage(), 'App push (Expo)', true,
+            'EXPO_ACCESS_TOKEN is not set. Phone push still works unless “Enhanced push security” is turned on at expo.dev.');
+
+        config(['services.expo.access_token' => 'expo-secret-never-shown']);
+        $page = $this->settingsPage();
+        $this->assertCheck($page, 'App push (Expo)', true, 'EXPO_ACCESS_TOKEN is set and is sent with every phone push.');
+        $page->assertDontSee('expo-secret-never-shown');
+    }
+
+    public function test_phones_with_the_app_count_as_push_subscribers(): void
+    {
+        $this->subscribe('https://fcm.googleapis.com/fcm/send/guest');
+        DevicePushToken::factory()->count(2)->create();
+
+        $this->assertCheck($this->settingsPage(), 'Push subscribers', true, '3 devices have emergency alerts turned on (1 browser, 2 phones with the app).');
+    }
+
     public function test_https_is_ok_over_https(): void
     {
         $this->assertCheck($this->settingsPage('https'), 'HTTPS', true, 'This page was served over https, so push alerts and phone sensors can work.');
@@ -127,14 +148,14 @@ class SystemStatusTest extends TestCase
 
         $page = $this->settingsPage();
 
-        $this->assertCheck($page, 'Push subscribers', true, '1 device has emergency alerts turned on.');
+        $this->assertCheck($page, 'Push subscribers', true, '1 device has emergency alerts turned on (1 browser, 0 phones with the app).');
         $page->assertSee('data-push-subscribers-live data-url="'.route('admin.settings.push-subscribers').'"', false);
     }
 
     public function test_push_subscribers_need_attention_when_no_device_has_alerts_on(): void
     {
         $this->assertCheck($this->settingsPage(), 'Push subscribers', false, 'No device has emergency alerts turned on yet.',
-            'Ask students to tap “Turn on emergency alerts” on their portal home or the landing page.');
+            'Ask students to tap “Turn on emergency alerts” on their portal home or the landing page, or to install the CNAS app.');
     }
 
     public function test_the_live_count_follows_devices_turning_alerts_on_and_off(): void
@@ -147,7 +168,7 @@ class SystemStatusTest extends TestCase
             ->assertJson([
                 'ok' => false,
                 'summary' => 'No device has emergency alerts turned on yet.',
-                'fix' => 'Ask students to tap “Turn on emergency alerts” on their portal home or the landing page.',
+                'fix' => 'Ask students to tap “Turn on emergency alerts” on their portal home or the landing page, or to install the CNAS app.',
             ]);
 
         $student = $this->subscribe('https://fcm.googleapis.com/fcm/send/student', User::factory()->create());
@@ -156,7 +177,7 @@ class SystemStatusTest extends TestCase
         $this->actingAs($admin)->getJson(route('admin.settings.push-subscribers'))
             ->assertExactJson([
                 'ok' => true,
-                'summary' => '2 devices have emergency alerts turned on.',
+                'summary' => '2 devices have emergency alerts turned on (2 browsers, 0 phones with the app).',
                 'fix' => null,
                 'checked_at' => now()->toIso8601String(),
             ]);
@@ -164,7 +185,7 @@ class SystemStatusTest extends TestCase
         $student->delete(); // The student turned alerts off.
 
         $this->actingAs($admin)->getJson(route('admin.settings.push-subscribers'))
-            ->assertJsonPath('summary', '1 device has emergency alerts turned on.');
+            ->assertJsonPath('summary', '1 device has emergency alerts turned on (1 browser, 0 phones with the app).');
     }
 
     public function test_the_live_count_is_admin_only(): void

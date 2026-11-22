@@ -7,6 +7,7 @@ use App\Enums\AlertResolution;
 use App\Enums\AlertSeverity;
 use App\Enums\AlertStatus;
 use App\Enums\AlertType;
+use App\Jobs\FanOutExpoAlertPush;
 use App\Jobs\SendAlertPush;
 use App\Services\CampusMap;
 use Database\Factories\AlertFactory;
@@ -25,7 +26,7 @@ use Illuminate\Validation\ValidationException;
 /**
  * An emergency alert. Admins send it (active), may edit its wording, then resolve it as "All clear" or "False alarm".
  * Only one alert is active at a time. Every page shows the current one (see current()), and every change that matters
- * to people (sent, resolved) is pushed to subscribed devices (SendAlertPush).
+ * to people (sent, resolved) is pushed to subscribed browsers (SendAlertPush) and phones (FanOutExpoAlertPush).
  *
  * Location: an optional incident pin (latitude, longitude) with a danger radius, and the affected buildings
  * (building_codes: codes from the buildings table). Whole-campus alerts have neither.
@@ -123,7 +124,7 @@ class Alert extends Model
             return $alert;
         }));
 
-        SendAlertPush::dispatch($alert);
+        $alert->pushToDevices();
 
         return $alert;
     }
@@ -144,7 +145,7 @@ class Alert extends Model
             $this->log(AlertLogAction::SeverityChanged, $by, "{$from->label()} → {$to->label()}");
         });
 
-        SendAlertPush::dispatch($this);
+        $this->pushToDevices();
     }
 
     /**
@@ -177,7 +178,16 @@ class Alert extends Model
             $this->log(AlertLogAction::Resolved, $by);
         });
 
+        $this->pushToDevices($resolution);
+    }
+
+    /**
+     * Push to every browser that turned alerts on (SendAlertPush) and every phone with the app (FanOutExpoAlertPush).
+     */
+    private function pushToDevices(?AlertResolution $resolution = null): void
+    {
         SendAlertPush::dispatch($this, $resolution);
+        FanOutExpoAlertPush::dispatch($this, $resolution);
     }
 
     private function log(AlertLogAction $action, User $by, ?string $detail = null): void

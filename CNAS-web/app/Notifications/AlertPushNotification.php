@@ -36,33 +36,61 @@ class AlertPushNotification extends Notification
     public function toWebPush(object $notifiable, Notification $notification): WebPushMessage
     {
         $alert = $this->alert;
-        $type = Str::upper($alert->type->label());
 
         $message = (new WebPushMessage)
             // One notification per alert: the all clear replaces the emergency on the lock screen.
-            ->tag("cnas-alert-{$alert->id}")
+            ->tag(self::tag($alert))
             ->renotify()
             ->icon(asset('icons/icon-192.png'))
             ->badge(asset('icons/badge-96.png'))
-            ->options(['TTL' => self::TIME_TO_LIVE, 'urgency' => 'high']);
+            ->options(['TTL' => self::TIME_TO_LIVE, 'urgency' => 'high'])
+            ->title(self::title($alert, $this->resolution))
+            ->body(self::body($alert, $this->resolution));
 
         if ($this->resolution === null) {
-            $firstLine = Str::of($alert->instructions ?: $alert->message)->explode("\n")->first();
-
-            $message
-                ->title(($alert->is_drill ? 'DRILL' : Str::upper($alert->severity->label()))." · {$type}")
-                ->body(Str::limit("{$alert->locationLabel()}: {$firstLine}", self::BODY_LIMIT))
-                ->data(['url' => route('navigate', ['alert' => $alert->id]), 'alert_id' => $alert->id]);
+            $message->data(['url' => route('navigate', ['alert' => $alert->id]), 'alert_id' => $alert->id]);
 
             // Only an emergency waits for a tap and buzzes. An advisory or a warning is an ordinary notification.
             return $alert->isEmergency() ? $message->requireInteraction()->vibrate(self::VIBRATE) : $message;
         }
 
-        $heading = $alert->is_drill ? 'DRILL OVER' : Str::upper($this->resolution->label());
+        return $message->data(['url' => url('/'), 'alert_id' => $alert->id]);
+    }
 
-        return $message
-            ->title("{$heading} · {$type}")
-            ->body(Str::limit((string) $alert->resolved_message, self::BODY_LIMIT))
-            ->data(['url' => url('/'), 'alert_id' => $alert->id]);
+    /**
+     * One notification per alert on a device: a resolution or a level change replaces the earlier one. The phone
+     * push (SendExpoAlertPush) uses the same id.
+     */
+    public static function tag(Alert $alert): string
+    {
+        return "cnas-alert-{$alert->id}";
+    }
+
+    /**
+     * "EMERGENCY · FIRE", "DRILL · FIRE", "ALL CLEAR · FIRE", "DRILL OVER · FIRE". Shared with the phone push.
+     */
+    public static function title(Alert $alert, ?AlertResolution $resolution = null): string
+    {
+        $type = Str::upper($alert->type->label());
+
+        if ($resolution === null) {
+            return ($alert->is_drill ? 'DRILL' : Str::upper($alert->severity->label()))." · {$type}";
+        }
+
+        return ($alert->is_drill ? 'DRILL OVER' : Str::upper($resolution->label()))." · {$type}";
+    }
+
+    /**
+     * Where, and the first line of what to do; or the admin's closing message. Shared with the phone push.
+     */
+    public static function body(Alert $alert, ?AlertResolution $resolution = null): string
+    {
+        if ($resolution !== null) {
+            return Str::limit((string) $alert->resolved_message, self::BODY_LIMIT);
+        }
+
+        $firstLine = Str::of($alert->instructions ?: $alert->message)->explode("\n")->first();
+
+        return Str::limit("{$alert->locationLabel()}: {$firstLine}", self::BODY_LIMIT);
     }
 }

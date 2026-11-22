@@ -65,7 +65,7 @@ Checked and fine (no finding): admin middleware on every `admin.*` route; `Class
 - **Concern retention**, and removing the email when an account is deleted (#10).
 - **Queue worker monitoring**: if the worker dies, no phone gets a push and nothing warns the admin (the status check was removed at your request). At least use Supervisor with autorestart, and look at `failed_jobs`.
 - **Backups**: the MySQL database and `storage/app/public` (photos and 360° photos are not in git).
-- **Mobile app API**: CNAS-mobile v1 (sign-in, registration, email verification, password reset, in-app alerts) is built on the API. "I'm safe" has an API route since 2026-11-22. Still missing: native (Expo) push and saved places.
+- **Mobile app API**: CNAS-mobile v1 (sign-in, registration, email verification, password reset, in-app alerts) is built on the API. "I'm safe" has an API route since 2026-11-22. Phone push (Expo) was added 2026-11-22 (docs/alerts.md, "Phone push"). Still missing: saved places.
 - **Branded error pages** (optional, #20).
 
 ## 4. Deployment checklist (in order)

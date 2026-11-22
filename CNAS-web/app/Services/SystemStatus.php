@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\BuildingType;
 use App\Models\AcademicTerm;
 use App\Models\Building;
+use App\Models\DevicePushToken;
 use App\Models\Path;
 use App\Models\Room;
 use Illuminate\Http\Request;
@@ -33,6 +34,7 @@ class SystemStatus
     {
         return [
             'push-keys' => $this->pushKeys(),
+            'expo-push' => $this->expoPush(),
             'https' => $this->https($request),
             'academic-term' => $this->academicTerm(),
             'map-data' => $this->mapData(),
@@ -56,6 +58,25 @@ class SystemStatus
             $missing->contains('VAPID_PUBLIC_KEY') || $missing->contains('VAPID_PRIVATE_KEY')
                 ? 'Run “php artisan webpush:vapid” once to add the keys to .env (never regenerate them), then “php artisan config:clear”.'
                 : 'Set VAPID_SUBJECT in .env to “mailto:” plus the admin email or to the https site address, then run “php artisan config:clear”.',
+        );
+    }
+
+    /**
+     * Phone push (the CNAS app) goes through Expo. EXPO_ACCESS_TOKEN is optional, so this is never red: it only says
+     * whether the token will be sent.
+     */
+    public function expoPush(): StatusCheck
+    {
+        $name = 'App push (Expo)';
+
+        if (filled(config('services.expo.access_token'))) {
+            return new StatusCheck($name, true, 'EXPO_ACCESS_TOKEN is set and is sent with every phone push.');
+        }
+
+        return new StatusCheck(
+            $name,
+            true,
+            'EXPO_ACCESS_TOKEN is not set. Phone push still works unless “Enhanced push security” is turned on at expo.dev.',
         );
     }
 
@@ -116,17 +137,20 @@ class SystemStatus
     public function pushSubscribers(): StatusCheck
     {
         $name = 'Push subscribers';
-        $devices = PushSubscription::count();
+        $browsers = PushSubscription::count();
+        $phones = DevicePushToken::count();
+        $devices = $browsers + $phones;
 
         if ($devices > 0) {
-            return new StatusCheck($name, true, $devices.' '.Str::plural('device', $devices).' '.($devices === 1 ? 'has' : 'have').' emergency alerts turned on.');
+            return new StatusCheck($name, true, $devices.' '.Str::plural('device', $devices).' '.($devices === 1 ? 'has' : 'have')
+                .' emergency alerts turned on ('.$browsers.' '.Str::plural('browser', $browsers).', '.$phones.' '.Str::plural('phone', $phones).' with the app).');
         }
 
         return new StatusCheck(
             $name,
             false,
             'No device has emergency alerts turned on yet.',
-            'Ask students to tap “Turn on emergency alerts” on their portal home or the landing page.',
+            'Ask students to tap “Turn on emergency alerts” on their portal home or the landing page, or to install the CNAS app.',
         );
     }
 }

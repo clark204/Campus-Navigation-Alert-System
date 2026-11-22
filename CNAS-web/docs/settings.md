@@ -18,10 +18,11 @@ Read this before touching /admin/settings, the footer contact details, emergency
 - `AdminSeeder` only sets the email and password when it creates the admin. Running it again never resets what the admin changed here.
 - **System status** (`App\Services\SystemStatus`, `StatusCheck`): read-only checks shown as an icon plus "OK" or "Needs attention", with one fix sentence when red. `checks()` is keyed. The checks are:
   - push keys (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` set; values never shown)
+  - app push (Expo): never red; says whether the optional `EXPO_ACCESS_TOKEN` is set (value never shown)
   - HTTPS (`$request->isSecure()`, proxies are trusted)
   - current academic term
   - map data (buildings, paths and rooms all above 0, with the counts)
-  - push subscribers (count of `push_subscriptions`, red at 0)
+  - push subscribers (browsers in `push_subscriptions` plus phones in `device_push_tokens`, with both counts; red at 0)
 - The queue worker check and the admin test notification were removed at the user's request (2026-11-16). Don't add them back unless asked.
 - **Live push subscribers**: `resources/js/push-subscribers-live.js` polls `GET admin.settings.push-subscribers` (`SystemStatusController`, JSON `{ok, summary, fix, checked_at}`, `no-store`, throttle 30/min). It polls every 10 s, only while the System status tab is open and the browser tab is visible.
   - It refreshes right away when the tab opens, the page is shown again, the connection returns (`online`), or this browser turns alerts on or off (`push.js` dispatches `cnas:push-subscription-changed`).

@@ -145,6 +145,13 @@ class AppServiceProvider extends ServiceProvider
                 $request, $headers, 'Too many sign-in attempts.', 'login',
             )));
 
+        // The app's push token (POST/DELETE /api/push-tokens), sent on every app start. Per token, plus a high per-IP
+        // ceiling: the whole campus can share one IP.
+        RateLimiter::for('push-tokens', fn (Request $request) => [
+            Limit::perMinute(10)->by('push-tokens:token:'.hash('sha256', (string) $request->input('expo_token'))),
+            Limit::perMinute(300)->by('push-tokens:ip:'.$request->ip()),
+        ]);
+
         // Password recovery (PasswordRecovery). Per login (email or student ID: the API sends it, the web reset page
         // keeps it in the session) and per IP. The per-IP caps are high on purpose: the whole campus can share one IP.
         RateLimiter::for('password-forgot', fn (Request $request) => $this->perKeyAndIpLimits(

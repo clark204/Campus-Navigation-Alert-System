@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\EmergencyContactController;
 use App\Http\Controllers\Api\MapController;
 use App\Http\Controllers\Api\PasswordRecoveryController;
+use App\Http\Controllers\Api\PushTokenController;
 use App\Http\Controllers\Api\RegisterController;
 use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\SafetyCheckController;
@@ -41,6 +42,15 @@ Route::controller(PasswordRecoveryController::class)->prefix('password')->name('
     Route::post('/verify-code', 'verifyCode')->middleware('throttle:password-reset')->name('verify-code');
     Route::post('/reset', 'reset')->middleware('throttle:password-reset')->name('reset');
 });
+
+// Phone alert push (docs/alerts.md, "Phone push"). Public, like web push: guests get alerts too. A valid bearer token
+// links the phone to that account; DELETE is "Turn off alerts" in the app.
+Route::controller(PushTokenController::class)->prefix('push-tokens')->name('api.push-tokens.')
+    ->middleware('throttle:push-tokens')
+    ->group(function () {
+        Route::post('/', 'store')->name('store');
+        Route::delete('/', 'destroy')->name('destroy');
+    });
 
 // Sanctum bearer tokens, one per device.
 Route::post('/login', [AuthController::class, 'login'])
