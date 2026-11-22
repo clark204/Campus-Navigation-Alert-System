@@ -14,9 +14,10 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import { colors, fonts } from '@/theme';
 import { Logo, LOGO_PEAK, LOGO_VIEWBOX } from './logo';
+import { TccLogo } from './tcc-logo';
 
-// The intro after the native splash: a pin drops onto the logo's peak, rings spread from it, the name fades in, then
-// the whole intro fades into Welcome or Home. Same background and logo size as the native splash (app.json), so the
+// The intro after the native splash: a pin drops onto the logo's peak, rings spread from it, the logo slides left as
+// the TCC seal fades in beside it, the name fades in, then the whole intro fades into Welcome or Home. Same background and logo size as the native splash (app.json), so the
 // hand-over doesn't flash.
 const LOGO_SIZE = 120;
 const PEAK = {
@@ -26,12 +27,16 @@ const PEAK = {
 const PIN = 34;
 const PIN_TIP = (22 / 24) * PIN;
 const RING = 56;
+// The TCC seal (square, so never stretched) next to the logo at the end. The pair stays centered on screen.
+const SEAL_SIZE = 108;
+const SEAL_GAP = 22;
+const PAIR_SHIFT = (SEAL_SIZE + SEAL_GAP) / 2;
 
-// Timings (ms). The full animation ends at SHOW_MS, then fades out over FADE_MS: about 1.8 s in all. With reduce motion
-// on, only the fade.
-const SHOW_MS = 1450;
+// Timings (ms). The full animation ends at SHOW_MS, then fades out over FADE_MS: about 2 s in all. With reduce motion
+// on, no pin or rings: the seal comes in with a short slide and fade.
+const SHOW_MS = 1700;
 const FADE_MS = 320;
-const REDUCED_SHOW_MS = 450;
+const REDUCED_SHOW_MS = 800;
 const REDUCED_FADE_MS = 250;
 const RINGS = [520, 680, 840];
 
@@ -53,15 +58,23 @@ export function Intro({ ready, fontsReady, urgent, onDone }: Props) {
   const fade = useSharedValue(1);
   const pin = useSharedValue(reduced ? 1 : 0);
   const text = useSharedValue(reduced ? 1 : 0);
+  const pair = useSharedValue(0);
 
   useEffect(() => {
     if (!reduced) {
       pin.set(withDelay(80, withTiming(1, { duration: 480, easing: Easing.out(Easing.back(1.7)) })));
       text.set(withDelay(760, withTiming(1, { duration: 420, easing: Easing.out(Easing.cubic) })));
     }
+    // ReduceMotion.Never: with reduce motion on this is a short, small slide; skipping it would make the logo jump.
+    pair.set(
+      withDelay(
+        reduced ? 150 : 700,
+        withTiming(1, { duration: reduced ? 300 : 520, easing: Easing.inOut(Easing.cubic), reduceMotion: ReduceMotion.Never }),
+      ),
+    );
     const timer = setTimeout(() => setShown(true), reduced ? REDUCED_SHOW_MS : SHOW_MS);
     return () => clearTimeout(timer);
-  }, [reduced, pin, text]);
+  }, [reduced, pin, text, pair]);
 
   useEffect(() => {
     if (!leaving) return;
@@ -77,6 +90,11 @@ export function Intro({ ready, fontsReady, urgent, onDone }: Props) {
     opacity: Math.min(1, pin.get() * 3),
     transform: [{ translateY: (1 - pin.get()) * -150 }],
   }));
+  const markStyle = useAnimatedStyle(() => ({ transform: [{ translateX: -pair.get() * PAIR_SHIFT }] }));
+  const sealStyle = useAnimatedStyle(() => ({
+    opacity: pair.get(),
+    transform: [{ translateX: (1 - pair.get()) * -16 }, { scale: 0.9 + pair.get() * 0.1 }],
+  }));
   const textStyle = useAnimatedStyle(() => ({ opacity: text.get(), transform: [{ translateY: (1 - text.get()) * 10 }] }));
 
   return (
@@ -87,15 +105,21 @@ export function Intro({ ready, fontsReady, urgent, onDone }: Props) {
         onLayout={() => SplashScreen.hide()}
         onPress={() => setSkipped(true)}
         accessibilityRole="button"
-        accessibilityLabel="CNAS, Campus Navigation and Alert System. Tap to skip.">
+        accessibilityLabel="CNAS, Campus Navigation and Alert System, Tagoloan Community College. Tap to skip.">
         <View style={styles.logo}>
-          <Logo size={LOGO_SIZE} />
-          {!reduced && RINGS.map((delay) => <Ring key={delay} delay={delay} />)}
-          <Animated.View style={[styles.pin, pinStyle]}>
-            <Svg width={PIN} height={PIN} viewBox="0 0 24 24">
-              <Path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7z" fill={colors.primary} stroke={colors.white} strokeWidth={1.4} />
-              <Circle cx={12} cy={9} r={2.7} fill={colors.secondary} />
-            </Svg>
+          {/* Starts exactly where the native splash's logo is, then slides left to make room for the seal. */}
+          <Animated.View style={[StyleSheet.absoluteFill, markStyle]}>
+            <Logo size={LOGO_SIZE} />
+            {!reduced && RINGS.map((delay) => <Ring key={delay} delay={delay} />)}
+            <Animated.View style={[styles.pin, pinStyle]}>
+              <Svg width={PIN} height={PIN} viewBox="0 0 24 24">
+                <Path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7z" fill={colors.primary} stroke={colors.white} strokeWidth={1.4} />
+                <Circle cx={12} cy={9} r={2.7} fill={colors.secondary} />
+              </Svg>
+            </Animated.View>
+            <Animated.View style={[styles.seal, sealStyle]}>
+              <TccLogo size={SEAL_SIZE} />
+            </Animated.View>
           </Animated.View>
           {fontsReady && (
             <Animated.View style={[styles.text, textStyle]}>
@@ -126,6 +150,7 @@ const styles = StyleSheet.create({
   screen: { backgroundColor: colors.bg, zIndex: 10 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   logo: { width: LOGO_SIZE, height: LOGO_SIZE },
+  seal: { position: 'absolute', left: LOGO_SIZE + SEAL_GAP, top: (LOGO_SIZE - SEAL_SIZE) / 2 },
   pin: { position: 'absolute', left: PEAK.x - PIN / 2, top: PEAK.y - PIN_TIP + 1 },
   ring: {
     position: 'absolute',

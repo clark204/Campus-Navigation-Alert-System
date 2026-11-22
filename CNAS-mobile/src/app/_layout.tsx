@@ -16,6 +16,7 @@ import { AlertOverlays } from '@/components/alert-overlays';
 import { AlertsPrompt } from '@/components/alerts-prompt';
 import { Intro } from '@/components/intro';
 import { AlertsProvider, useAlerts } from '@/lib/alerts';
+import { IntroDoneContext } from '@/lib/intro';
 import { PushProvider, usePush } from '@/lib/push-context';
 import { isAdmin } from '@/lib/roles';
 import { SessionProvider, useSession } from '@/lib/session';
@@ -61,12 +62,12 @@ function App({ fontsReady }: { fontsReady: boolean }) {
   const loaded = ready && fontsReady;
 
   return (
-    <>
+    <IntroDoneContext value={introDone}>
       {loaded && <RootNavigator />}
       {/* Once, after the intro: why the app asks to send notifications, then the phone's own question. */}
       {loaded && introDone && needsPrompt && <AlertsPrompt />}
       {!introDone && <Intro ready={loaded} fontsReady={fontsReady} urgent={takeover !== null} onDone={finishIntro} />}
-    </>
+    </IntroDoneContext>
   );
 }
 

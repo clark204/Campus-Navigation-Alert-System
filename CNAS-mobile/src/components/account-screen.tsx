@@ -6,6 +6,7 @@ import { useSession } from '@/lib/session';
 import { colors, fonts, radius, space, type } from '@/theme';
 import { Icon } from './icon';
 import { PushCard } from './push-card';
+import { TccLogo } from './tcc-logo';
 import { Detail, Screen, Title } from './ui';
 import { WebLinks } from './web-links';
 
@@ -87,6 +88,12 @@ export function AccountScreen() {
         <Text style={styles.signOutText}>{signingOut ? 'Signing out…' : 'Sign out'}</Text>
       </Pressable>
       <Text style={[type.small, styles.center]}>This phone keeps getting emergency alerts after you sign out.</Text>
+
+      <View style={styles.footer}>
+        <TccLogo size={56} />
+        <Text style={styles.footerName}>Tagoloan Community College</Text>
+        <Text style={[type.small, styles.center]}>Campus Navigation & Alert System</Text>
+      </View>
     </Screen>
   );
 }
@@ -125,4 +132,6 @@ const styles = StyleSheet.create({
   signOutPressed: { backgroundColor: colors.errorTint },
   signOutText: { fontFamily: fonts.bold, fontSize: 17, color: colors.alarm },
   center: { textAlign: 'center' },
+  footer: { alignItems: 'center', gap: 4, marginTop: space.lg, paddingTop: space.lg, borderTopWidth: 1, borderTopColor: colors.border },
+  footerName: { fontFamily: fonts.semibold, fontSize: 16, lineHeight: 21, color: colors.primary, textAlign: 'center', marginTop: space.xs },
 });

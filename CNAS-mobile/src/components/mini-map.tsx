@@ -11,7 +11,8 @@ import { CampusSvg } from './campus-svg';
 import { Icon } from './icon';
 import { IncidentDot } from './incident-dot';
 
-const SIZE = 68;
+export const MINI_MAP_SIZE = 68;
+const SIZE = MINI_MAP_SIZE;
 
 /** The round campus mini-map (Welcome and Home, top right). Tap to open the map screen. */
 export function MiniMap() {
