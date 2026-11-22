@@ -98,6 +98,10 @@ function set(next: Partial<State>) {
 }
 
 const REFRESH_MS = 5 * 60 * 1000;
+// React Native's Android HTTP client has no connect timeout, and a PC firewall drops (rather than refuses) a port
+// nothing listens on, so without this an unreachable server keeps the spinner up for about two minutes. Same limit as
+// api.ts.
+const FETCH_TIMEOUT_MS = 20000;
 
 /** Load the cached map, then ask the server whether it changed. Runs at most every 5 minutes unless forced. */
 export async function loadCampusMap(force = false) {
@@ -114,10 +118,12 @@ export async function loadCampusMap(force = false) {
     }
   }
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (etag && state.map) headers['If-None-Match'] = etag;
-    const response = await fetch(`${API_URL}/map`, { headers });
+    const response = await fetch(`${API_URL}/map`, { headers, signal: controller.signal });
     if (response.status === 304) {
       set({ loading: false });
       return;
@@ -126,12 +132,15 @@ export async function loadCampusMap(force = false) {
     const body = await response.json();
     const map = slim(body?.data);
     etag = response.headers.get('ETag');
-    writeJson(CACHE_KEY, { etag, map } satisfies Cached);
     set({ map, loading: false });
+    // Saving is only for next time: writeJson swallows its errors, so a failed save never hides the map.
+    writeJson(CACHE_KEY, { etag, map } satisfies Cached);
   } catch {
-    // Offline: keep the cached copy, and try again the next time a map is opened.
+    // Offline or too slow: keep the cached copy, and try again the next time a map is opened.
     lastFetch = 0;
     set({ loading: false, failed: true });
+  } finally {
+    clearTimeout(timer);
   }
 }
 

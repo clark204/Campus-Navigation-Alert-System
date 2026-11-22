@@ -119,6 +119,9 @@ Walking directions like /navigate on the website (CNAS-web `docs/navigation.md`)
 - **Testing away from campus:** in a development build, "debug" (bottom left while walking) shows GPS accuracy, why
   fixes were not used, the heading's source, off-route meters and reroutes, and has **Simulate**, **Walk route** and
   **Walk off** (a fake GPS walk through the same path as real fixes).
+- **Restart Metro after `metro.config.js` or `tsconfig.json` changes.** A Metro started before them can't find
+  `@nav/...`. It answers the bundle request with HTTP 500, and the development build closes right after you pick the
+  server, with no red screen (the phone's crash log says `UnableToResolveError ... @nav/instructions.js`).
 - **Web preview gotcha:** after editing navigation files, the web preview can keep serving the old `navigate` route
   chunk (lazy bundles). Restart it with `--clear` before trusting what it shows.
 
