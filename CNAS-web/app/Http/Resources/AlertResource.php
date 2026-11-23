@@ -11,7 +11,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * Location: latitude/longitude/danger_radius_m are null for whole-campus alerts; building_codes are codes from
  * the buildings table. has_location: a pin or affected buildings (a warning shows "Show route to safety" for it).
  * severity: advisory, warning or emergency (what people get: see App\Enums\AlertSeverity). banner_expires_at: for a
- * resolved alert, when its green banner stops showing.
+ * resolved alert, when its green banner stops showing. what_to_do: the bold action line (Alert::whatToDo(), with the
+ * fallback for older alerts).
  *
  * @mixin Alert
  */
@@ -31,6 +32,7 @@ class AlertResource extends JsonResource
             'severity_label' => $this->severity->label(),
             'title' => $this->title,
             'message' => $this->message,
+            'what_to_do' => $this->whatToDo(),
             'instructions' => $this->instructions,
             'is_drill' => $this->is_drill,
             'status' => $this->status->value,

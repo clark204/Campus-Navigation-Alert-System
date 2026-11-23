@@ -36,6 +36,7 @@ class TrustedAlertsTest extends TestCase
             'severity' => 'emergency',
             'title' => 'Fire in the NEE Building',
             'message' => 'Smoke on the second floor.',
+            'what_to_do' => 'Leave by the nearest stairs.',
             'instructions' => 'Leave by the nearest stairs.',
             ...$overrides,
         ];

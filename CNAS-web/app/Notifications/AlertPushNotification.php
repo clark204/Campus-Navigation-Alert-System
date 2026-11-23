@@ -67,9 +67,18 @@ class AlertPushNotification extends Notification
     }
 
     /**
-     * "EMERGENCY · FIRE", "DRILL · FIRE", "ALL CLEAR · FIRE", "DRILL OVER · FIRE". Shared with the phone push.
+     * The kind and the alert's short title: "EMERGENCY · FIRE: Fire on campus", "DRILL · FIRE: …"; once it is over
+     * "ALL CLEAR · FIRE: …" or "DRILL OVER · FIRE: …". Shared with the phone push.
      */
     public static function title(Alert $alert, ?AlertResolution $resolution = null): string
+    {
+        return self::kind($alert, $resolution).": {$alert->title}";
+    }
+
+    /**
+     * "EMERGENCY · FIRE", "DRILL · FIRE", "ALL CLEAR · FIRE", "DRILL OVER · FIRE".
+     */
+    public static function kind(Alert $alert, ?AlertResolution $resolution = null): string
     {
         $type = Str::upper($alert->type->label());
 
@@ -81,7 +90,8 @@ class AlertPushNotification extends Notification
     }
 
     /**
-     * Where, and the first line of what to do; or the admin's closing message. Shared with the phone push.
+     * Where, and "What to do now" (or what is happening when there is none); or the admin's closing message. Shared
+     * with the phone push.
      */
     public static function body(Alert $alert, ?AlertResolution $resolution = null): string
     {
@@ -89,8 +99,8 @@ class AlertPushNotification extends Notification
             return Str::limit((string) $alert->resolved_message, self::BODY_LIMIT);
         }
 
-        $firstLine = Str::of($alert->instructions ?: $alert->message)->explode("\n")->first();
+        $action = $alert->whatToDo() ?: Str::of($alert->message)->explode("\n")->first();
 
-        return Str::limit("{$alert->locationLabel()}: {$firstLine}", self::BODY_LIMIT);
+        return Str::limit("{$alert->locationLabel()}: {$action}", self::BODY_LIMIT);
     }
 }

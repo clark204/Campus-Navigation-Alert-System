@@ -10,6 +10,7 @@ use App\Enums\AlertType;
 use App\Jobs\FanOutExpoAlertPush;
 use App\Jobs\SendAlertPush;
 use App\Services\CampusMap;
+use Carbon\CarbonInterface;
 use Database\Factories\AlertFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -21,6 +22,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -43,7 +45,7 @@ use Illuminate\Validation\ValidationException;
  * @property Carbon $sent_at
  * @property ?Carbon $resolved_at
  */
-#[Fillable(['type', 'severity', 'title', 'message', 'instructions', 'is_drill', 'latitude', 'longitude', 'danger_radius_m', 'building_codes'])]
+#[Fillable(['type', 'severity', 'title', 'message', 'what_to_do', 'instructions', 'is_drill', 'latitude', 'longitude', 'danger_radius_m', 'building_codes'])]
 class Alert extends Model
 {
     /** @use HasFactory<AlertFactory> */
@@ -56,6 +58,12 @@ class Alert extends Model
     public const DANGER_RADII = [30, 50, 100];
 
     public const DEFAULT_DANGER_RADIUS = 50;
+
+    /** Titles fit two lines of the takeover on a 360 px phone. */
+    public const TITLE_MAX = 60;
+
+    /** "What to do now": one short sentence, read in about three seconds. */
+    public const WHAT_TO_DO_MAX = 100;
 
     private const CURRENT_CACHE_KEY = 'alerts.current';
 
@@ -106,7 +114,7 @@ class Alert extends Model
      * Send a new alert and push it to every subscribed device. Fails if one is already active: edit or resolve that
      * one instead.
      *
-     * @param  array{type: AlertType|string, severity: AlertSeverity|string, title: string, message: string, instructions?: ?string, is_drill?: bool, latitude?: ?float, longitude?: ?float, danger_radius_m?: ?int, building_codes?: list<string>}  $attributes
+     * @param  array{type: AlertType|string, severity: AlertSeverity|string, title: string, message: string, what_to_do?: ?string, instructions?: ?string, is_drill?: bool, latitude?: ?float, longitude?: ?float, danger_radius_m?: ?int, building_codes?: list<string>}  $attributes
      *
      * @throws ValidationException
      */
@@ -151,12 +159,12 @@ class Alert extends Model
     /**
      * Change the wording of an active alert. The banner picks it up on its next poll; no new push.
      *
-     * @param  array{title: string, message: string, instructions?: ?string}  $attributes
+     * @param  array{title: string, message: string, what_to_do?: ?string, instructions?: ?string}  $attributes
      */
     public function revise(array $attributes, User $by): void
     {
         DB::transaction(function () use ($attributes, $by) {
-            $this->fill(Arr::only($attributes, ['title', 'message', 'instructions']))->save();
+            $this->fill(Arr::only($attributes, ['title', 'message', 'what_to_do', 'instructions']))->save();
             $this->log(AlertLogAction::Edited, $by);
         });
     }
@@ -241,6 +249,37 @@ class Alert extends Model
     public function isEmergency(): bool
     {
         return $this->severity->isEmergency();
+    }
+
+    /**
+     * The one bold line people read first: "Leave the building now. Go to the open field." Alerts sent before the field
+     * existed (or advisories sent without it) fall back to the first sentence of their instructions, cut at
+     * WHAT_TO_DO_MAX; empty when there are none.
+     */
+    public function whatToDo(): string
+    {
+        if (filled($this->what_to_do)) {
+            return $this->what_to_do;
+        }
+
+        $firstLine = trim((string) Str::of((string) $this->instructions)->explode("\n")->first());
+        $firstSentence = preg_split('/(?<=[.!?])\s+/', $firstLine, 2)[0] ?? '';
+
+        return Str::limit($firstSentence, self::WHAT_TO_DO_MAX - 3);
+    }
+
+    /**
+     * How long it was active, for History and the report: "Under a minute", "42m", "2h 5m"; null while active.
+     */
+    public function lastedLabel(): ?string
+    {
+        if ($this->resolved_at === null || $this->sent_at === null) {
+            return null;
+        }
+
+        return $this->sent_at->diffInSeconds($this->resolved_at) < 60
+            ? 'Under a minute'
+            : $this->sent_at->diffForHumans($this->resolved_at, ['parts' => 2, 'short' => true, 'minimumUnit' => 'minute', 'syntax' => CarbonInterface::DIFF_ABSOLUTE]);
     }
 
     /**

@@ -63,41 +63,48 @@ enum AlertType: string
     }
 
     /**
-     * Starting text for the send form; the admin edits it before sending.
+     * Starting text for the send form; the admin edits it before sending. Short and plain: people read the title and
+     * "What to do now" in a few seconds; the message and instructions are under "More details".
      *
-     * @return array{title: string, message: string, instructions: string}
+     * @return array{title: string, message: string, what_to_do: string, instructions: string}
      */
     public function template(): array
     {
         return match ($this) {
             self::Fire => [
                 'title' => 'Fire on campus',
-                'message' => 'A fire has been reported on campus.',
-                'instructions' => 'Leave the building now by the nearest exit and go to the evacuation area. Stay low if there is smoke. Do not go back inside.',
+                'message' => 'A fire has been reported.',
+                'what_to_do' => 'Leave the building now. Go to the open field.',
+                'instructions' => "Use the nearest exit. Stay low if there is smoke.\nDo not use the elevator. Do not go back inside.",
             ],
             self::Earthquake => [
                 'title' => 'Earthquake',
-                'message' => 'An earthquake has hit the area.',
-                'instructions' => 'Duck, cover and hold until the shaking stops. Then leave the building calmly, keep away from windows and walls, and go to the evacuation area. Expect aftershocks.',
+                'message' => 'An earthquake is shaking the area.',
+                'what_to_do' => 'Drop, cover and hold on. Leave when the shaking stops.',
+                'instructions' => "Then walk out calmly to the open field. Keep away from windows and walls.\nExpect aftershocks.",
             ],
             self::Flood => [
                 'title' => 'Flooding on campus',
-                'message' => 'Flooding has been reported on campus.',
-                'instructions' => 'Move to an upper floor or higher ground. Do not walk or drive through floodwater. Keep away from electrical outlets and wires.',
+                'message' => 'Water is rising on campus.',
+                'what_to_do' => 'Go to an upper floor. Stay out of the water.',
+                'instructions' => "Do not walk or drive through floodwater.\nKeep away from outlets and wires.",
             ],
             self::Typhoon => [
                 'title' => 'Typhoon warning',
-                'message' => 'A typhoon is affecting the area.',
-                'instructions' => 'Stay indoors and away from windows. Watch for announcements about class suspension. Do not travel until it is safe.',
+                'message' => 'A typhoon is near the area.',
+                'what_to_do' => 'Stay indoors, away from windows.',
+                'instructions' => "Watch for news about class suspension.\nDo not travel until it is safe.",
             ],
             self::Security => [
                 'title' => 'Security threat on campus',
-                'message' => 'A security threat has been reported on campus.',
-                'instructions' => 'Stay where you are. Lock or block the door, turn off the lights, silence your phone and stay out of sight. Wait for instructions from security.',
+                'message' => 'A security threat has been reported.',
+                'what_to_do' => 'Stay inside. Lock the door and keep quiet.',
+                'instructions' => "Turn off the lights and silence your phone. Stay out of sight.\nWait for security to tell you it is safe.",
             ],
             self::Other => [
                 'title' => 'Emergency alert',
                 'message' => '',
+                'what_to_do' => '',
                 'instructions' => '',
             ],
         };

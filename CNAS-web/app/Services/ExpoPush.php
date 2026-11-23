@@ -7,6 +7,7 @@ use App\Enums\AlertSeverity;
 use App\Jobs\CheckExpoPushReceipts;
 use App\Models\Alert;
 use App\Models\DevicePushToken;
+use App\Models\SafetyCheck;
 use App\Notifications\AlertPushNotification;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
@@ -82,6 +83,31 @@ class ExpoPush
             // Android replaces a shown notification with the same tag; iOS (and Android in transit) uses collapseId.
             'tag' => AlertPushNotification::tag($alert),
             'collapseId' => AlertPushNotification::tag($alert),
+            'ttl' => self::TIME_TO_LIVE,
+        ];
+    }
+
+    /**
+     * "<admin> is on the way" for the person who asked for help (SendHelpUpdatePush), on the warnings channel (its
+     * chime, not the alarm). Opening it opens the app, which shows the alert with the same line.
+     *
+     * @return array<string, mixed>
+     */
+    public function helpUpdateMessage(string $to, SafetyCheck $check): array
+    {
+        $check->loadMissing(['alert', 'responder']);
+        $responder = $check->responder?->full_name ?? 'An administrator';
+
+        return [
+            'to' => $to,
+            'title' => ($check->alert->is_drill ? 'DRILL: ' : '')."{$responder} is on the way",
+            'body' => 'Stay where you are if it is safe. Keep the app open so they can see where you are.',
+            'data' => ['alert_id' => $check->alert_id, 'screen' => 'alert'],
+            'priority' => 'high',
+            'channelId' => self::CHANNEL_WARNING,
+            'sound' => 'chime.wav',
+            'tag' => "cnas-help-update-{$check->id}",
+            'collapseId' => "cnas-help-update-{$check->id}",
             'ttl' => self::TIME_TO_LIVE,
         ];
     }

@@ -32,10 +32,13 @@ export class Takeover {
         }
         this.alarm.start(alert.is_drill);
         this.hint.hidden = false;
-        this.root.querySelector('[data-route-to-safety]').focus();
+        // "I'm safe" first (signed in), else the route to safety.
+        (this.root.querySelector('[data-mark-safe]:not(:disabled)') ?? this.root.querySelector('[data-route-to-safety]')).focus();
     }
 
     update(alert) {
+        // A new alert (or a new version of it) starts with "More details" closed again.
+        if (this.alert?.version !== alert?.version) this.root.querySelector('[data-takeover-details]')?.removeAttribute('open');
         this.alert = alert;
         fillAlert(this.root, alert);
     }

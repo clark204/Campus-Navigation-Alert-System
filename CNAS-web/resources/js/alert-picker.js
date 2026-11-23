@@ -10,7 +10,7 @@ import { AFFECTED_TYPES, buildingAt as buildingUnder, locationLabel } from './na
 
 const ALARM_COLOR = '#B3121B';
 const SAFE_COLOR = '#0F6B3A';
-const WORDING_FIELDS = ['title', 'message', 'instructions'];
+const WORDING_FIELDS = ['title', 'message', 'what_to_do', 'instructions'];
 
 function ringBounds(ring) {
     const lngs = ring.map(([lng]) => lng);
@@ -69,6 +69,8 @@ export async function initAlertPicker(form) {
         const checked = buildingBoxes.filter((box) => box.checked);
         const label = locationLabel(checked.map((box) => box.dataset.buildingName), pin() !== null);
         $('[data-picker-location]').textContent = label;
+        // The phone preview (alert-wording.js) shows the location too.
+        form.dispatchEvent(new Event('alert-location-change'));
         $('[data-picker-building-count]').textContent = checked.length ? `(${checked.length})` : '';
         radiusField.disabled = pin() === null;
         clearButton.hidden = pin() === null;

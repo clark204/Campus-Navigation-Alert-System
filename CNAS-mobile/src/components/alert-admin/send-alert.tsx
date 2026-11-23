@@ -7,21 +7,24 @@ import { alertForm, alertsStore, type AlertFormData, type AlertTypeOption } from
 import { api, ApiError, errorMessage } from '@/lib/api';
 import type { CampusMap } from '@/lib/campus-map';
 import { buildingAt, locationLabel } from '@/lib/incident';
+import { useToast } from '@/lib/toasts';
 import type { AlertSeverity } from '@/lib/types';
 import { colors, fonts, radius, space, type } from '@/theme';
 import { Icon } from '../icon';
-import { BackLink, Body, Button, Field, Notice, Screen, Title } from '../ui';
+import { BackLink, Button, Notice, Screen, Title } from '../ui';
 import { Chips, DrillBadge, DrillSwitch, LevelBadge, LevelPicker, TypePicker } from './parts';
 import { PinMap } from './pin-map';
+import { PhonePreview, WordingFields, wordingReady } from './wording';
 
 type Position = [number, number];
-type Step = 'what' | 'where' | 'confirm' | 'sent';
+type Step = 'what' | 'where' | 'confirm';
 
 type Draft = {
   type: AlertTypeOption['value'];
   severity: AlertSeverity;
   title: string;
   message: string;
+  what_to_do: string;
   instructions: string;
   is_drill: boolean;
   pin: Position | null;
@@ -36,19 +39,20 @@ const SHEET = 300;
  * 1. what: the type (its level and wording are filled in), the level, drill, the wording;
  * 2. where: tap the map to drop the incident pin (the building under it is ticked), the danger zone, more buildings, or
  *    the whole campus;
- * 3. confirm: "This will alert everyone", then POST /api/alerts. The server checks everything again (StoreAlertRequest).
+ * 3. confirm: "This will alert everyone" with a phone preview of what people get, then POST /api/alerts; a toast says it
+ *    went out. The server checks everything again (StoreAlertRequest).
  */
 export function SendAlertScreen({ backLabel }: { backLabel: string }) {
   const [form, setForm] = useState<AlertFormData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   // The wording the type filled in, so picking another type only swaps it while the sender hasn't changed it (web rule).
-  const [template, setTemplate] = useState<{ title: string; message: string; instructions: string } | null>(null);
+  const [template, setTemplate] = useState<AlertTypeOption['template'] | null>(null);
   const [autoBuilding, setAutoBuilding] = useState<string | null>(null);
   const [step, setStep] = useState<Step>('what');
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
-  const [sentMessage, setSentMessage] = useState<string | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     alertForm().then(
@@ -90,7 +94,7 @@ export function SendAlertScreen({ backLabel }: { backLabel: string }) {
 
   const set = (patch: Partial<Draft>) => setDraft((current) => (current ? { ...current, ...patch } : current));
   const pickType = (option: AlertTypeOption) => {
-    const untouched = draft.title === template.title && draft.message === template.message && draft.instructions === template.instructions;
+    const untouched = (['title', 'message', 'what_to_do', 'instructions'] as const).every((field) => draft[field] === template[field]);
     set({ type: option.value, severity: option.severity, ...(untouched ? option.template : {}) });
     setTemplate(option.template);
   };
@@ -132,6 +136,7 @@ export function SendAlertScreen({ backLabel }: { backLabel: string }) {
           severity: draft.severity,
           title: draft.title,
           message: draft.message,
+          what_to_do: draft.what_to_do || null,
           instructions: draft.instructions || null,
           is_drill: draft.is_drill,
           latitude: draft.pin?.[1] ?? null,
@@ -140,9 +145,9 @@ export function SendAlertScreen({ backLabel }: { backLabel: string }) {
           building_codes: draft.buildings,
         },
       });
-      setSentMessage(result.message);
-      setStep('sent');
       alertsStore.load(true);
+      toast(result.message);
+      router.back();
     } catch (failure) {
       setErrors(failure instanceof ApiError && failure.status === 422 ? Object.values(failure.fields) : [errorMessage(failure)]);
     } finally {
@@ -167,20 +172,6 @@ export function SendAlertScreen({ backLabel }: { backLabel: string }) {
     );
   }
 
-  if (step === 'sent') {
-    return (
-      <Screen>
-        <View style={styles.sentIcon}>
-          <Icon name="check" size={40} color={colors.white} strokeWidth={2.8} />
-        </View>
-        <Title>{draft.is_drill ? 'Drill sent' : 'Alert sent'}</Title>
-        <Notice tone="success">{sentMessage}</Notice>
-        <Body muted>Follow it from the dashboard: the “I’m safe” answers come in there, and you end it with All clear or False alarm.</Body>
-        <Button title="Back to the dashboard" onPress={() => router.back()} />
-      </Screen>
-    );
-  }
-
   if (step === 'confirm') {
     return (
       <Screen>
@@ -196,9 +187,15 @@ export function SendAlertScreen({ backLabel }: { backLabel: string }) {
               {draft.is_drill && <DrillBadge />}
               <Text style={type.small}>{typeOption.label}</Text>
             </View>
-            <Text style={styles.alertTitle}>{draft.title}</Text>
-            <Text style={type.body}>{draft.message}</Text>
-            {draft.instructions ? <Text style={[type.body, { fontFamily: fonts.semibold }]}>{draft.instructions}</Text> : null}
+            <PhonePreview
+              wording={draft}
+              severity={draft.severity}
+              severityLabel={level.label}
+              typeLabel={typeOption.label}
+              icon={draft.type}
+              isDrill={draft.is_drill}
+              location={place}
+            />
             <View style={styles.placeRow}>
               <Icon name="pin" size={18} color={colors.alarm} />
               <Text style={styles.place}>
@@ -225,21 +222,8 @@ export function SendAlertScreen({ backLabel }: { backLabel: string }) {
       <Text style={type.label}>How serious is it?</Text>
       <LevelPicker levels={form.severities} value={draft.severity} onChange={(severity) => set({ severity })} />
       <DrillSwitch value={draft.is_drill} onChange={(is_drill) => set({ is_drill })} />
-      <Field label="Title" value={draft.title} onChangeText={(title) => set({ title })} maxLength={120} />
-      <Field label="What is happening" value={draft.message} onChangeText={(message) => set({ message })} multiline maxLength={1000} style={styles.multiline} />
-      <Field
-        label="What to do (optional)"
-        value={draft.instructions}
-        onChangeText={(instructions) => set({ instructions })}
-        multiline
-        maxLength={2000}
-        style={styles.multiline}
-      />
-      <Button
-        title="Next: where is it?"
-        disabled={draft.title.trim() === '' || draft.message.trim() === ''}
-        onPress={() => setStep('where')}
-      />
+      <WordingFields value={draft} onChange={set} severity={draft.severity} limits={form.limits} />
+      <Button title="Next: where is it?" disabled={!wordingReady(draft, draft.severity)} onPress={() => setStep('where')} />
     </Screen>
   );
 }
@@ -331,14 +315,11 @@ function WhereStep({ draft, form, place, campusWide, onTap, onWholeCampus, onRad
 }
 
 const styles = StyleSheet.create({
-  multiline: { minHeight: 96, textAlignVertical: 'top', paddingTop: 14, paddingBottom: 14, lineHeight: 24 },
-  sentIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.safe, alignItems: 'center', justifyContent: 'center', marginTop: space.xl },
   confirm: { borderRadius: radius.lg, overflow: 'hidden', borderWidth: 2, borderColor: colors.alarm, backgroundColor: colors.surface },
   confirmHead: { flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.md, backgroundColor: colors.alarm },
   confirmTitle: { fontFamily: fonts.bold, fontSize: 21, color: colors.white },
   confirmBody: { padding: space.md, gap: space.sm },
   badges: { flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' },
-  alertTitle: { fontFamily: fonts.bold, fontSize: 22, lineHeight: 28, color: colors.text },
   placeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   place: { flex: 1, fontFamily: fonts.semibold, fontSize: 16, color: colors.alarm },
   placeBig: { flex: 1, fontFamily: fonts.bold, fontSize: 19, color: colors.text },

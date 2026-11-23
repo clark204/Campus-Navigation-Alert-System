@@ -74,13 +74,14 @@ class SendAlertPushTest extends TestCase
         $this->subscribe('https://fcm.googleapis.com/fcm/send/student', User::factory()->create());
         $this->subscribe('https://fcm.googleapis.com/fcm/send/guest');
         $this->fakePushService();
-        $alert = Alert::factory()->pinned()->create(['instructions' => "Leave the building now.\nDo not use the stairs near the fire."]);
+        // An alert from before "What to do now": the body falls back to the first sentence of its instructions.
+        $alert = Alert::factory()->pinned()->create(['what_to_do' => null, 'instructions' => "Leave the building now. Use the east exit.\nDo not use the stairs near the fire."]);
 
         (new SendAlertPush($alert))->handle();
 
         $this->assertSame(['https://fcm.googleapis.com/fcm/send/student', 'https://fcm.googleapis.com/fcm/send/guest'], array_keys($this->sent));
         $payload = $this->sent['https://fcm.googleapis.com/fcm/send/guest'];
-        $this->assertSame('EMERGENCY · FIRE', $payload['title']);
+        $this->assertSame('EMERGENCY · FIRE: Fire on campus', $payload['title']);
         $this->assertSame('NEE Building: Leave the building now.', $payload['body']);
         $this->assertTrue($payload['requireInteraction']);
         $this->assertSame([500, 200, 500, 200, 500, 200, 500], $payload['vibrate']);
@@ -95,11 +96,11 @@ class SendAlertPushTest extends TestCase
 
         (new SendAlertPush(Alert::factory()->drill()->create(['type' => 'earthquake'])))->handle();
 
-        $this->assertSame('DRILL · EARTHQUAKE', $this->sent['https://fcm.googleapis.com/fcm/send/guest']['title']);
+        $this->assertSame('DRILL · EARTHQUAKE: Fire on campus', $this->sent['https://fcm.googleapis.com/fcm/send/guest']['title']);
     }
 
-    #[TestWith([AlertResolution::AllClear, 'ALL CLEAR · FIRE'])]
-    #[TestWith([AlertResolution::FalseAlarm, 'FALSE ALARM · FIRE'])]
+    #[TestWith([AlertResolution::AllClear, 'ALL CLEAR · FIRE: Fire on campus'])]
+    #[TestWith([AlertResolution::FalseAlarm, 'FALSE ALARM · FIRE: Fire on campus'])]
     public function test_the_end_of_an_alert_replaces_its_notification(AlertResolution $resolution, string $title): void
     {
         $this->subscribe('https://fcm.googleapis.com/fcm/send/guest');

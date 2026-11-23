@@ -91,7 +91,7 @@ class StoreAlertRequest extends FormRequest
         $hasPin = filled($this->input('latitude'));
 
         return [
-            ...$this->safe()->only(['type', 'title', 'message', 'instructions']),
+            ...$this->safe()->only(['type', 'title', 'message', 'what_to_do', 'instructions']),
             'severity' => AlertSeverity::from((string) $this->input('severity')),
             'is_drill' => $this->boolean('is_drill'),
             'latitude' => $hasPin ? (float) $this->input('latitude') : null,

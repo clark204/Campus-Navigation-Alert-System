@@ -1,8 +1,10 @@
 // Which alert shows what, ported from CNAS-web (resources/js/alerts/takeover-state.js and banner-state.js) so the
 // app and the site behave the same (docs/alerts.md):
-// - advisory: banner only
-// - warning: banner, plus a one-time popup with a chime
-// - emergency: full-screen takeover with a looping alarm and vibration, then the banner, and "I'm safe"
+// - advisory: a yellow toast that closes by itself (the web: a yellow banner)
+// - warning: an orange toast with a chime that stays until closed (the web: banner and popup)
+// - emergency: full-screen takeover with a looping alarm and vibration, then the red pill, and "I'm safe"
+// - its end ("All clear" or "False alarm"): a green toast that closes by itself
+// Each shows once per alert version on this phone. Every alert stays on the Alerts screen.
 import type { Alert } from './types';
 
 export const SEEN_LIMIT = 20;
@@ -15,8 +17,19 @@ export const isEmergency = (alert: Alert | null) => alert?.severity === 'emergen
 export const shouldTakeOver = (alert: Alert | null, seen: string[]) =>
   alert !== null && alert.status === 'active' && alert.severity === 'emergency' && !seen.includes(seenKey(alert));
 
-export const shouldPopUp = (alert: Alert | null, seen: string[]) =>
-  alert !== null && alert.status === 'active' && alert.severity === 'warning' && !seen.includes(seenKey(alert));
+/** A toast for anything but an active emergency (that has the takeover and the pill), once per version. */
+export const shouldToast = (alert: Alert | null, seen: string[]) =>
+  alert !== null && !(alert.status === 'active' && alert.severity === 'emergency') && !seen.includes(seenKey(alert));
+
+/** The red pill at the top: an active emergency whose takeover is closed. Gone once it ends. */
+export const showsPill = (alert: Alert | null) => alert?.status === 'active' && alert.severity === 'emergency';
+
+/** "EMERGENCY · FIRE", "DRILL · FIRE", "WARNING · FLOOD"; once over "ALL CLEAR · FIRE" or "DRILL OVER · FIRE". Same as the push. */
+export function alertKind(alert: Alert): string {
+  const type = alert.type_label.toUpperCase();
+  if (alert.status === 'resolved') return `${alert.is_drill ? 'DRILL OVER' : (alert.resolution_label ?? 'All clear').toUpperCase()} · ${type}`;
+  return `${alert.is_drill ? 'DRILL' : alert.severity_label.toUpperCase()} · ${type}`;
+}
 
 /** "I'm safe" is only asked during an active emergency (the server refuses other levels). */
 export const showsSafeButton = (alert: Alert | null) => alert?.status === 'active' && alert.severity === 'emergency';

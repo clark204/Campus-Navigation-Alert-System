@@ -40,6 +40,7 @@ class AlertSeverityTest extends TestCase
             'severity' => 'emergency',
             'title' => 'Fire on campus',
             'message' => 'A fire has been reported.',
+            'what_to_do' => 'Leave the building now.',
             'instructions' => 'Leave the building.',
             ...$overrides,
         ];
@@ -102,6 +103,7 @@ class AlertSeverityTest extends TestCase
                 'severity' => 'emergency',
                 'title' => $alert->title,
                 'message' => $alert->message,
+                'what_to_do' => $alert->what_to_do,
                 'instructions' => $alert->instructions,
             ])
             ->assertRedirect(route('admin.alerts.index'));
@@ -183,9 +185,9 @@ class AlertSeverityTest extends TestCase
             ->assertJsonPath('data.has_location', true);
     }
 
-    #[TestWith([AlertSeverity::Advisory, 'ADVISORY · OTHER EMERGENCY', false, false])]
-    #[TestWith([AlertSeverity::Warning, 'WARNING · FLOOD', false, false])]
-    #[TestWith([AlertSeverity::Emergency, 'EMERGENCY · FIRE', true, true])]
+    #[TestWith([AlertSeverity::Advisory, 'ADVISORY · OTHER EMERGENCY: Fire on campus', false, false])]
+    #[TestWith([AlertSeverity::Warning, 'WARNING · FLOOD: Fire on campus', false, false])]
+    #[TestWith([AlertSeverity::Emergency, 'EMERGENCY · FIRE: Fire on campus', true, true])]
     public function test_the_push_says_the_level_and_only_an_emergency_waits_and_buzzes(AlertSeverity $level, string $title, bool $waits, bool $buzzes): void
     {
         $alert = Alert::factory()->create([

@@ -80,7 +80,8 @@ class ExpoAlertPushTest extends TestCase
             'severity' => AlertSeverity::Emergency,
             'title' => 'Fire at the NEE Building',
             'message' => 'Smoke on the 2nd floor.',
-            'instructions' => "Leave the building now.\nDo not use the stairs near the fire.",
+            'what_to_do' => 'Leave the building now.',
+            'instructions' => "Use the east exit.\nDo not use the stairs near the fire.",
             'building_codes' => ['b1'],
         ], User::factory()->create(['role' => UserRole::Admin]));
 
@@ -88,7 +89,7 @@ class ExpoAlertPushTest extends TestCase
         $this->assertSame([$student->expo_token, $guest->expo_token], array_column($messages, 'to'));
         $this->assertSame([
             'to' => $student->expo_token,
-            'title' => 'EMERGENCY · FIRE',
+            'title' => 'EMERGENCY · FIRE: Fire at the NEE Building',
             'body' => 'NEE Building: Leave the building now.',
             'data' => ['alert_id' => $alert->id, 'screen' => 'alert'],
             'priority' => 'high',
@@ -142,7 +143,7 @@ class ExpoAlertPushTest extends TestCase
         $alert->resolve('All clear. It is safe to go back to your classes.', User::factory()->create(['role' => UserRole::Admin]));
 
         $message = $this->sentMessages()[0];
-        $this->assertSame('ALL CLEAR · FIRE', $message['title']);
+        $this->assertSame('ALL CLEAR · FIRE: Fire on campus', $message['title']);
         $this->assertSame('All clear. It is safe to go back to your classes.', $message['body']);
         $this->assertSame("cnas-alert-{$alert->id}", $message['tag']);
         $this->assertSame("cnas-alert-{$alert->id}", $message['collapseId']);
@@ -158,7 +159,7 @@ class ExpoAlertPushTest extends TestCase
 
         $alert->resolve('False alarm. There is no emergency.', User::factory()->create(['role' => UserRole::Admin]), AlertResolution::FalseAlarm);
 
-        $this->assertSame('FALSE ALARM · FIRE', $this->sentMessages()[0]['title']);
+        $this->assertSame('FALSE ALARM · FIRE: Fire on campus', $this->sentMessages()[0]['title']);
     }
 
     public function test_a_level_change_is_pushed_again(): void

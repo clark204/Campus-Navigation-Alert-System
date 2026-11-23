@@ -3,7 +3,7 @@
      the danger zone, check the pre-filled wording, send. One screen on a phone too: the wording folds away and "Send
      alert" stays at the bottom. resources/js/alert-picker.js drives the map; without JavaScript the type, buildings
      and wording still work (a whole-campus alert).
-     Needs $action (POST URL), $backUrl and $backLabel, and from the controller $types, $type, $severities, $severity,
+     Needs $action (POST URL), and from the controller $types, $type, $severities, $severity,
      $buildings, $radii, $defaultRadius. --}}
 @use('App\Enums\AlertType')
 
@@ -12,7 +12,7 @@
     $wording = fn (string $field) => old($field, $type->template()[$field]);
     $checkedBuildings = old('building_codes', []);
     $radius = (int) old('danger_radius_m', $defaultRadius);
-    $wordingHasErrors = $errors->hasAny(['title', 'message', 'instructions']);
+    $wordingHasErrors = $errors->hasAny(['title', 'message', 'what_to_do', 'instructions']);
 @endphp
 
 <form method="POST" action="{{ $action }}" novalidate data-submit-once data-alert-picker
@@ -20,14 +20,13 @@
     data-templates="{{ $templates->toJson() }}"
     data-campus-wide="{{ collect($types)->filter->isCampusWide()->map->value->values()->toJson() }}"
     data-confirm="Send this alert to everyone now?"
-    class="mx-auto flex max-w-7xl flex-col gap-5 pb-24 lg:pb-0">
+    class="flex flex-col gap-5 pb-24 lg:pb-0">
     @csrf
     <input type="hidden" name="latitude" value="{{ old('latitude') }}" data-picker-latitude>
     <input type="hidden" name="longitude" value="{{ old('longitude') }}" data-picker-longitude>
 
     <div>
-        <a href="{{ $backUrl }}" class="text-sm font-semibold text-primary underline-offset-4 hover:underline">{{ $backLabel }}</a>
-        <h1 class="mt-1 text-2xl font-semibold tracking-tight text-alarm sm:text-3xl">Send emergency alert</h1>
+        <h1 class="text-2xl font-semibold tracking-tight text-alarm sm:text-3xl">Send emergency alert</h1>
         <p class="mt-1 text-sm text-text-muted">Everyone sees it within 15 seconds, and subscribed devices get a notification.</p>
     </div>
 
@@ -50,7 +49,7 @@
                 <div class="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0">
                     @foreach ($types as $option)
                         <label class="relative shrink-0">
-                            <input type="radio" name="type" value="{{ $option->value }}" @checked($type === $option) data-default-severity="{{ $option->defaultSeverity()->value }}" class="peer sr-only">
+                            <input type="radio" name="type" value="{{ $option->value }}" @checked($type === $option) data-default-severity="{{ $option->defaultSeverity()->value }}" data-type-label="{{ $option->label() }}" class="peer sr-only">
                             <span class="flex h-full cursor-pointer items-center gap-2 rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm font-semibold whitespace-nowrap transition peer-checked:border-alarm peer-checked:bg-alarm peer-checked:text-white peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-secondary hover:border-alarm/60">
                                 <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
                                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -139,25 +138,11 @@
                     <span class="shrink-0 text-sm font-semibold text-primary group-open/wording:hidden">Edit</span>
                 </summary>
 
-                <div class="grid gap-4 border-t border-border p-4">
-                    <div>
-                        <label for="title" class="mb-1.5 block text-xs font-semibold">Title</label>
-                        <input id="title" name="title" type="text" maxlength="120" required value="{{ $wording('title') }}" class="login-input"
-                            @error('title') aria-invalid="true" aria-describedby="title-error" @enderror>
-                        @error('title') <p id="title-error" class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                    </div>
-                    <div>
-                        <label for="message" class="mb-1.5 block text-xs font-semibold">What is happening</label>
-                        <textarea id="message" name="message" rows="2" maxlength="1000" required class="login-input"
-                            @error('message') aria-invalid="true" aria-describedby="message-error" @enderror>{{ $wording('message') }}</textarea>
-                        @error('message') <p id="message-error" class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                    </div>
-                    <div>
-                        <label for="instructions" class="mb-1.5 block text-xs font-semibold">What to do <span class="font-normal text-text-muted">(optional)</span></label>
-                        <textarea id="instructions" name="instructions" rows="4" maxlength="2000" class="login-input"
-                            @error('instructions') aria-invalid="true" aria-describedby="instructions-error" @enderror>{{ $wording('instructions') }}</textarea>
-                        @error('instructions') <p id="instructions-error" class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                    </div>
+                <div class="border-t border-border p-4">
+                    @include('admin.alert-wording-fields', [
+                        'value' => $wording,
+                        'preview' => ['type' => $type, 'severity' => $severity ?? $type->defaultSeverity(), 'drill' => (bool) old('is_drill'), 'location' => 'Whole campus'],
+                    ])
                 </div>
             </details>
 
