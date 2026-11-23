@@ -10,19 +10,20 @@ import { Icon } from './icon';
 import { MenuList } from './portal-parts';
 import { PushCard } from './push-card';
 import { TccLogo } from './tcc-logo';
-import { Detail, Screen, Title } from './ui';
+import { BackLink, Detail, Screen, Title } from './ui';
 import { WebLinks } from './web-links';
 
 /** The Account tab (admin and portal): who is signed in, alerts on this phone, voice directions, Change password and
  * Change email, and Sign out. */
-export function AccountScreen() {
-  const { user, signOut, setVerifyLater } = useSession();
-  const [signingOut, setSigningOut] = useState(false);
+/** `backLabel`: shown as a page (the admin's Settings → My account) rather than a tab. */
+export function AccountScreen({ backLabel }: { backLabel?: string } = {}) {
+  const { user, setVerifyLater } = useSession();
   if (!user) return null;
 
   return (
     <Screen>
-      <Title>Account</Title>
+      {backLabel ? <BackLink label={backLabel} /> : null}
+      <Title>{backLabel ? 'My account' : 'Account'}</Title>
 
       <View style={styles.profile}>
         <View style={styles.avatar}>
@@ -84,6 +85,23 @@ export function AccountScreen() {
         </>
       )}
 
+      <SignOutButton />
+
+      <View style={styles.footer}>
+        <TccLogo size={56} />
+        <Text style={styles.footerName}>Tagoloan Community College</Text>
+        <Text style={[type.small, styles.center]}>Campus Navigation & Alert System</Text>
+      </View>
+    </Screen>
+  );
+}
+
+/** Sign out (Account tab, the admin's Settings tab and Settings → My account), with the note about alerts. */
+export function SignOutButton() {
+  const { signOut } = useSession();
+  const [signingOut, setSigningOut] = useState(false);
+  return (
+    <>
       <Pressable
         onPress={async () => {
           setSigningOut(true);
@@ -96,13 +114,7 @@ export function AccountScreen() {
         <Text style={styles.signOutText}>{signingOut ? 'Signing out…' : 'Sign out'}</Text>
       </Pressable>
       <Text style={[type.small, styles.center]}>This phone keeps getting emergency alerts after you sign out.</Text>
-
-      <View style={styles.footer}>
-        <TccLogo size={56} />
-        <Text style={styles.footerName}>Tagoloan Community College</Text>
-        <Text style={[type.small, styles.center]}>Campus Navigation & Alert System</Text>
-      </View>
-    </Screen>
+    </>
   );
 }
 

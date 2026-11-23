@@ -3,7 +3,7 @@ import { Stack } from 'expo-router';
 import { colors } from '@/theme';
 
 // The tabs are the first screen, so a page opened from Home goes back to them.
-export const unstable_settings = { initialRouteName: '(tabs)' };
+export const unstable_settings = { anchor: '(tabs)' };
 
 /**
  * The portal for students, faculty and staff: the tabs (Home, Map, Account) and the pages they open. The pages live

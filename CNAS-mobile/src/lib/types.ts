@@ -70,7 +70,7 @@ export type Alert = {
   resolved_message: string | null;
   banner_expires_at: string | null;
   /** Only when signed in: "safe" when this user already tapped "I'm safe" (any device). Null outside an emergency. */
-  my_safety_status?: 'safe' | null;
+  my_safety_status?: 'safe' | 'need_help' | null;
 };
 
 export type Weekday = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';

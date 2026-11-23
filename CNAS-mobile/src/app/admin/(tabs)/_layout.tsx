@@ -4,16 +4,18 @@ import { useCallback } from 'react';
 
 import { tab, useTabBarOptions } from '@/components/tab-options';
 import { concernsStore } from '@/lib/admin';
+import { useOpenReports } from '@/lib/admin-reports';
 import { useResource } from '@/lib/portal-data';
 import { colors, fonts } from '@/theme';
 
 /**
- * The admin's tabs: Dashboard, Concerns (gold badge: new ones this admin hasn't opened), Accounts, Map and Account
- * (signing out is under Account).
+ * The admin's tabs: Dashboard, Map, Concerns (gold badge: new ones this admin hasn't opened), Accounts and Settings
+ * (My account and Sign out are inside Settings). A tapped report push (a new concern, "I need help") opens its screen.
  */
 export default function AdminTabs() {
   const concerns = useResource(concernsStore);
   const unread = concerns.data?.meta.unread_count ?? 0;
+  useOpenReports();
 
   // Back on the tabs (from a concern or the dashboard): the badge catches up.
   useFocusEffect(
@@ -25,6 +27,7 @@ export default function AdminTabs() {
   return (
     <Tabs screenOptions={useTabBarOptions()}>
       <Tabs.Screen name="index" options={tab('Dashboard', 'shield')} />
+      <Tabs.Screen name="map" options={tab('Map', 'map')} />
       <Tabs.Screen
         name="concerns"
         options={{
@@ -34,8 +37,7 @@ export default function AdminTabs() {
         }}
       />
       <Tabs.Screen name="accounts" options={tab('Accounts', 'users')} />
-      <Tabs.Screen name="map" options={tab('Map', 'map')} />
-      <Tabs.Screen name="account" options={tab('Account', 'user')} />
+      <Tabs.Screen name="settings" options={tab('Settings', 'sliders')} />
     </Tabs>
   );
 }

@@ -36,12 +36,16 @@ export type ManagedAlert = Alert & { sent_by: string | null; resolved_by: string
 
 export type SafetyCounts = {
   safe: number;
+  /** "I need help" answers (listed first, with a note). */
+  need_help: number;
   total: number;
   not_answered: number;
-  colleges: { id: string; name: string; safe: number; total: number }[];
+  colleges: { id: string; name: string; safe: number; need_help: number; total: number }[];
 };
 
-export type SafetyView = SafetyCounts & { people: { name: string; role: string; college: string | null; responded_at: string }[] };
+export type SafetyView = SafetyCounts & {
+  people: { name: string; role: string; college: string | null; status: 'safe' | 'need_help'; note: string | null; responded_at: string }[];
+};
 
 /** GET /api/alerts */
 export type AlertsOverview = {
@@ -182,5 +186,27 @@ export function campusDateTime(iso: string | null): string {
 export async function clearAdminData() {
   alertsStore.reset();
   concernsStore.reset();
-  await removeKeys([alertsStore.key, concernsStore.key]);
+  dashboardStore.reset();
+  await removeKeys([alertsStore.key, concernsStore.key, dashboardStore.key]);
 }
+
+// ---------- Dashboard (GET /api/admin/dashboard, CNAS-web App\Services\AdminAnalytics: the website's numbers)
+
+export type DashboardStats = {
+  generated_at: string;
+  accounts: { total: number; by_role: Record<Role, number>; this_week: number; last_week: number };
+  sign_ins: { days: { date: string; web: number; app: number }[]; last_7: number; previous_7: number; people_7: number };
+  concerns: { open: number; resolved: number; last_30: number; by_topic: { topic: string; label: string; count: number }[]; median_reply_hours: number | null };
+  alerts: {
+    last_90: number;
+    drills_90: number;
+    last: { title: string; is_drill: boolean; sent_at: string; answered: number; need_help: number; accounts: number } | null;
+  };
+  reach: { phones: number; browsers: number };
+  colleges: { name: string; students: number }[];
+  places: { started: { name: string; count: number }[]; saved: { name: string; count: number }[] };
+  term_warning: { kind: 'closed' | 'outdated'; message: string } | null;
+};
+
+/** The dashboard's numbers, kept on the phone too (the last copy shows offline). */
+export const dashboardStore = createStore<DashboardStats>('cnas.admin.dashboard', () => api<DashboardStats>('/admin/dashboard'));

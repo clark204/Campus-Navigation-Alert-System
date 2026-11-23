@@ -5,6 +5,8 @@ use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\ActiveAlertController;
 use App\Http\Controllers\Api\Admin\AccountController as AdminAccountController;
 use App\Http\Controllers\Api\Admin\ConcernController as AdminConcernController;
+use App\Http\Controllers\Api\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Api\Admin\SettingsController as AdminSettingsController;
 use App\Http\Controllers\Api\AlertManagementController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ConcernController as ApiConcernController;
@@ -18,6 +20,7 @@ use App\Http\Controllers\Api\PushTokenController;
 use App\Http\Controllers\Api\RegisterController;
 use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\ConcernController;
+use App\Http\Controllers\NeedHelpController;
 use App\Http\Controllers\PlaceController;
 use App\Http\Controllers\SafetyCheckController;
 use App\Http\Middleware\EnsureUserCanSendAlerts;
@@ -148,6 +151,25 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::patch('/{concern}/reopen', 'reopen')->name('reopen');
         });
 
+        // The app's dashboard: the website's numbers (AdminAnalytics).
+        Route::get('/dashboard', AdminDashboardController::class)->middleware('throttle:30,1')->name('dashboard');
+
+        // The app's Settings: the web's requests and messages (docs/settings.md). Web-only: map data, photos, QR codes.
+        Route::controller(AdminSettingsController::class)->name('settings.')->group(function () {
+            Route::get('/academic-terms', 'terms')->name('terms');
+            Route::post('/academic-terms', 'storeTerm')->name('terms.store');
+            Route::post('/academic-terms/{academicTerm}/current', 'makeTermCurrent')->name('terms.current');
+            Route::get('/contact-details', 'contactDetails')->name('contact');
+            Route::put('/contact-details', 'updateContactDetails')->name('contact.update');
+            Route::get('/emergency-contacts', 'emergencyContacts')->name('emergency-contacts');
+            Route::post('/emergency-contacts', 'storeEmergencyContact')->name('emergency-contacts.store');
+            Route::put('/emergency-contacts/{emergencyContact}', 'updateEmergencyContact')->name('emergency-contacts.update');
+            Route::delete('/emergency-contacts/{emergencyContact}', 'destroyEmergencyContact')->name('emergency-contacts.destroy');
+            Route::patch('/emergency-contacts/{emergencyContact}/move', 'moveEmergencyContact')->name('emergency-contacts.move');
+            Route::patch('/emergency-contacts/{emergencyContact}/visibility', 'emergencyContactVisibility')->name('emergency-contacts.visibility');
+            Route::get('/system-status', 'status')->middleware('throttle:30,1')->name('status');
+        });
+
         Route::controller(AdminAccountController::class)->prefix('accounts')->name('accounts.')->group(function () {
             Route::get('/', 'index')->name('index');
             Route::get('/options', 'options')->name('options');
@@ -164,4 +186,5 @@ Route::middleware('auth:sanctum')->group(function () {
     // "I'm safe" from the app's takeover or banner. The web controller, answering JSON: 409 when the alert is over or
     // isn't an emergency. Unverified users can answer, like on the web.
     Route::post('/alerts/{alert}/safe', SafetyCheckController::class)->middleware('throttle:10,1')->name('api.alerts.safe');
+    Route::post('/alerts/{alert}/help', NeedHelpController::class)->middleware('throttle:10,1')->name('api.alerts.help');
 });

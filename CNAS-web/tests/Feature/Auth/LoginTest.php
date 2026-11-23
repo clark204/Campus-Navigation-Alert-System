@@ -21,9 +21,9 @@ class LoginTest extends TestCase
         return [
             'student who tried the admin console' => [UserRole::Student, 'admin.dashboard', 'student.dashboard'],
             'faculty who tried the student portal' => [UserRole::Faculty, 'student.dashboard', 'faculty.dashboard'],
-            'staff who tried an admin page' => [UserRole::Staff, 'admin.academic-terms.index', 'faculty.dashboard'],
+            'staff who tried an admin page' => [UserRole::Staff, 'admin.settings', 'faculty.dashboard'],
             'admin who tried the faculty portal' => [UserRole::Admin, 'faculty.dashboard', 'admin.dashboard'],
-            'admin who tried another admin page' => [UserRole::Admin, 'admin.academic-terms.index', 'admin.dashboard'],
+            'admin who tried another admin page' => [UserRole::Admin, 'admin.settings', 'admin.dashboard'],
         ];
     }
 

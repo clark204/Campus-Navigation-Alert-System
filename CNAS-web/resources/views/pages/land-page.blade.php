@@ -15,7 +15,7 @@
                     <span class="h-px w-9 bg-secondary"></span> YOUR CAMPUS. YOUR NEXT CHAPTER.
                 </p>
                 <h1 class="text-5xl leading-[1.07] font-semibold tracking-[-.045em] sm:text-6xl lg:text-[68px]">
-                    Know your campus.<br><span class="text-[#dfbc59]">Find your path.</span>
+                    Find your way<br><span class="text-[#dfbc59]">Around TCC</span>
                 </h1>
                 <p class="mt-6 max-w-md text-base leading-7 text-white/75">
                     From your first class to your next destination, feel at home at Tagoloan Community College.
