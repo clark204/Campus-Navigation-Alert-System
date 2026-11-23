@@ -116,7 +116,7 @@ class AdminSearchTest extends TestCase
         ]);
     }
 
-    #[TestWith(['semester', 'Academic term', 'admin.academic-terms.index', null])]
+    #[TestWith(['semester', 'Academic term', 'admin.settings', 'academic-term'])]
     #[TestWith(['password', 'My account', 'admin.settings', 'my-account'])]
     #[TestWith(['hotline', 'Emergency contacts', 'admin.settings', 'emergency-contacts'])]
     #[TestWith(['send alert', 'Send an emergency alert', 'admin.alerts.create', null])]

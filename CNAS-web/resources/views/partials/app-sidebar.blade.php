@@ -1,7 +1,7 @@
 {{-- Sidebar shared by the admin console and the portal. Off-canvas below lg, opened from the top bar menu button.
      Needs: $sidebarId, $navLabel, $homeRoute, $subtitle and $groups (heading or null => items with label, route, icon,
      and optionally `active`: route name patterns that also highlight the item, e.g. its edit pages; `badge`: a count
-     shown after the label when above 0, read as "{badge} {badgeLabel}").
+     shown after the label when above 0, read as "{badge} {badgeLabel}"; `live`: a URL whose JSON `count` refreshes it).
      $helpRoute: route name of the Help & contact page (the portal's), or null for none (the admin console).
      Links without a route yet fall back to '#'. Icons are 24×24 stroke paths. --}}
 @php
@@ -43,9 +43,11 @@
                                     <path d="{{ $item['icon'] }}" />
                                 </svg>
                                 {{ $item['label'] }}
-                                @if (($item['badge'] ?? 0) > 0)
-                                    <span class="ml-auto rounded-full bg-secondary px-2 py-0.5 text-xs font-bold text-primary-hover tabular-nums">
-                                        {{ $item['badge'] }}<span class="sr-only"> {{ $item['badgeLabel'] ?? '' }}</span>
+                                {{-- A badge with a 'live' URL is kept up to date while the page is open (admin-badges.js). --}}
+                                @if (($item['badge'] ?? 0) > 0 || isset($item['live']))
+                                    <span @if (isset($item['live'])) data-live-badge="{{ $item['live'] }}" @endif @if (($item['badge'] ?? 0) <= 0) hidden @endif
+                                        class="ml-auto rounded-full bg-secondary px-2 py-0.5 text-xs font-bold text-primary-hover tabular-nums">
+                                        <span data-live-badge-count>{{ $item['badge'] ?? 0 }}</span><span class="sr-only"> {{ $item['badgeLabel'] ?? '' }}</span>
                                     </span>
                                 @endif
                             </a>

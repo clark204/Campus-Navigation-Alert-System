@@ -1,5 +1,5 @@
 {{-- Admin console layout: sidebar navigation + top bar. Off-canvas sidebar below lg. The portal layout shares this shell. --}}
-@use('App\Models\Concern')
+@use('App\Services\ConcernInbox')
 @php
     $sidebarId = 'admin-sidebar';
     $groups = [
@@ -14,11 +14,10 @@
             ['label' => '360° photos', 'route' => 'admin.panoramas.index', 'active' => ['admin.panoramas.*'], 'icon' => 'M4 8h3l2-3h6l2 3h3v11H4zm8 8a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z'],
         ],
         'People' => [
-            ['label' => 'Concerns', 'route' => 'admin.concerns.index', 'active' => ['admin.concerns.*'], 'badge' => Concern::open()->count(), 'badgeLabel' => 'open', 'icon' => 'M4 5h16v11H8l-4 4zm4 4h8m-8 3h5'],
+            ['label' => 'Concerns', 'route' => 'admin.concerns.index', 'active' => ['admin.concerns.*'], 'badge' => app(ConcernInbox::class)->openCount(), 'badgeLabel' => 'open', 'live' => route('admin.concerns.count'), 'icon' => 'M4 5h16v11H8l-4 4zm4 4h8m-8 3h5'],
             ['label' => 'Accounts', 'route' => 'admin.accounts.index', 'active' => ['admin.accounts.*'], 'icon' => 'M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20m6-9a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zm10 9v-1.5a3.5 3.5 0 0 0-2.5-3.35m-2-11a3.5 3.5 0 0 1 0 6.7'],
         ],
         'Site' => [
-            ['label' => 'Academic term', 'route' => 'admin.academic-terms.index', 'icon' => 'M7 3v3m10-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm3 8h2m4 0h2m-8 4h2'],
             ['label' => 'Settings', 'route' => 'admin.settings', 'icon' => 'M4 6h9m4 0h3M4 12h3m4 0h9M4 18h11m4 0h1M15 4v4M9 10v4m8 2v4'],
         ],
     ];

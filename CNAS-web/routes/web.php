@@ -23,6 +23,7 @@ use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\TemporaryPasswordController;
 use App\Http\Controllers\ConcernController;
+use App\Http\Controllers\NeedHelpController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PlaceController;
 use App\Http\Controllers\Portal\AlertController as PortalAlertController;
@@ -65,6 +66,7 @@ Route::middleware(['auth', EnsureUserIsAdmin::class])->prefix('admin')->name('ad
     Route::get('/search', [SearchController::class, 'index'])->name('search');
     Route::get('/search/suggestions', [SearchController::class, 'suggestions'])->middleware('throttle:60,1')->name('search.suggestions');
 
+    // Academic term is a Settings tab now (?tab=academic-term); the old page's URL redirects there.
     Route::get('/academic-terms', [AcademicTermController::class, 'index'])->name('academic-terms.index');
     Route::post('/academic-terms', [AcademicTermController::class, 'store'])->name('academic-terms.store');
     Route::post('/academic-terms/{academicTerm}/current', [AcademicTermController::class, 'makeCurrent'])->name('academic-terms.current');
@@ -113,6 +115,8 @@ Route::middleware(['auth', EnsureUserIsAdmin::class])->prefix('admin')->name('ad
 
     Route::controller(AdminConcernController::class)->prefix('concerns')->name('concerns.')->group(function () {
         Route::get('/', 'index')->name('index');
+        // The sidebar badge, refreshed every 30 s on admin pages (resources/js/admin-badges.js).
+        Route::get('/count', 'count')->middleware('throttle:60,1')->name('count');
         Route::get('/{concern}', 'show')->name('show');
         Route::post('/{concern}/replies', 'reply')->name('reply');
         Route::patch('/{concern}/resolve', 'resolve')->name('resolve');
@@ -126,6 +130,8 @@ Route::middleware(['auth', EnsureUserIsAdmin::class])->prefix('admin')->name('ad
         Route::get('/{alert}/edit', 'edit')->name('edit');
         Route::put('/{alert}', 'update')->name('update');
         Route::post('/{alert}/resolve', 'resolve')->name('resolve');
+        // The "I'm safe" panel alone, asked every 10 s by alert-safety-live.js (no reload needed).
+        Route::get('/{alert}/safety', 'safety')->middleware(['throttle:30,1', SetCacheHeaders::using('no_store;private')])->name('safety');
     });
 
     // Campus map data is edited in another app: here it is downloaded as campus.geojson and imported back.
@@ -307,6 +313,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/{room}/recent', 'recent')->name('recent');
     });
 
-    // "I'm safe" from the alarm takeover or the banner.
+    // "I'm safe" or "I need help" (with a note, pushed to the admins) from the alarm takeover or the banner.
     Route::post('/alerts/{alert}/safe', SafetyCheckController::class)->middleware('throttle:10,1')->name('alerts.safe');
+    Route::post('/alerts/{alert}/help', NeedHelpController::class)->middleware('throttle:10,1')->name('alerts.help');
 });

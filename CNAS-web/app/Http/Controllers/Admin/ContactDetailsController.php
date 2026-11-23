@@ -12,11 +12,13 @@ use Illuminate\Http\RedirectResponse;
  */
 class ContactDetailsController extends Controller
 {
+    public const SAVED_MESSAGE = 'Contact details saved. The site footer shows them now.';
+
     public function update(UpdateContactDetailsRequest $request, ContactDetails $contactDetails): RedirectResponse
     {
         $contactDetails->save($request->validated());
 
         return redirect(SettingsController::tabUrl('contact-details'))
-            ->with('section', 'contact')->with('status', 'Contact details saved. The site footer shows them now.');
+            ->with('section', 'contact')->with('status', self::SAVED_MESSAGE);
     }
 }

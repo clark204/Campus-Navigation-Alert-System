@@ -3,15 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\MoveEmergencyContactRequest;
 use App\Http\Requests\Admin\SaveEmergencyContactRequest;
 use App\Http\Requests\Admin\UpdateEmergencyContactVisibilityRequest;
 use App\Models\EmergencyContact;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 /**
- * Settings → Emergency contacts: the numbers on the portal home and /api/emergency-contacts.
+ * Settings → Emergency contacts: the numbers on the portal home and /api/emergency-contacts. The mobile app uses the
+ * same requests and messages (Api\Admin\SettingsController).
  */
 class EmergencyContactController extends Controller
 {
@@ -19,38 +19,50 @@ class EmergencyContactController extends Controller
     {
         $contact = EmergencyContact::create($request->contact());
 
-        return $this->backToList("{$contact->name} was added.");
+        return $this->backToList(self::message('added', $contact));
     }
 
     public function update(SaveEmergencyContactRequest $request, EmergencyContact $emergencyContact): RedirectResponse
     {
         $emergencyContact->update($request->contact());
 
-        return $this->backToList("{$emergencyContact->name} was saved.");
+        return $this->backToList(self::message('saved', $emergencyContact));
     }
 
     public function destroy(EmergencyContact $emergencyContact): RedirectResponse
     {
         $emergencyContact->delete();
 
-        return $this->backToList("{$emergencyContact->name} was deleted.");
+        return $this->backToList(self::message('deleted', $emergencyContact));
     }
 
-    public function move(Request $request, EmergencyContact $emergencyContact): RedirectResponse
+    public function move(MoveEmergencyContactRequest $request, EmergencyContact $emergencyContact): RedirectResponse
     {
-        $direction = $request->validate(['direction' => ['required', Rule::in(['up', 'down'])]])['direction'];
-        $emergencyContact->move($direction);
+        $emergencyContact->move($request->direction());
 
-        return $this->backToList("{$emergencyContact->name} was moved {$direction}.");
+        return $this->backToList(self::message("moved {$request->direction()}", $emergencyContact));
     }
 
     public function visibility(UpdateEmergencyContactVisibilityRequest $request, EmergencyContact $emergencyContact): RedirectResponse
     {
         $emergencyContact->update(['is_visible' => $request->boolean('is_visible')]);
 
-        return $this->backToList($emergencyContact->is_visible
-            ? "{$emergencyContact->name} is now shown to students."
-            : "{$emergencyContact->name} is now hidden from students.");
+        return $this->backToList(self::visibilityMessage($emergencyContact));
+    }
+
+    /**
+     * "Campus security was added." (added, saved, deleted, moved up, moved down).
+     */
+    public static function message(string $done, EmergencyContact $contact): string
+    {
+        return "{$contact->name} was {$done}.";
+    }
+
+    public static function visibilityMessage(EmergencyContact $contact): string
+    {
+        return $contact->is_visible
+            ? "{$contact->name} is now shown to students."
+            : "{$contact->name} is now hidden from students.";
     }
 
     private function backToList(string $status): RedirectResponse

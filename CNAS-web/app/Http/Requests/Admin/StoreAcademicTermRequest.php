@@ -3,12 +3,24 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\Semester;
+use App\Http\Controllers\Admin\SettingsController;
 use App\Rules\AcademicYear;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
+/**
+ * Settings → Academic term → Add a term (web and mobile app). Errors use the bag academicTerm on the web.
+ */
 class StoreAcademicTermRequest extends FormRequest
 {
+    /** @var string */
+    protected $errorBag = 'academicTerm';
+
+    protected function getRedirectUrl(): string
+    {
+        return SettingsController::tabUrl('academic-term');
+    }
+
     public function authorize(): bool
     {
         return $this->user()?->isAdmin() ?? false;

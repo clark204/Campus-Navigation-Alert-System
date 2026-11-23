@@ -3,7 +3,8 @@
 Read this before touching /admin/settings, the footer contact details, emergency contacts, the admin's own account, or the system status checks.
 
 ## Decisions
-- One page, `/admin/settings` (route `admin.settings`), admin only, with four tabs: Contact details (default), Emergency contacts, My account, System status (`SettingsController::TABS`).
+- One page, `/admin/settings` (route `admin.settings`), admin only, with five tabs: Contact details (default), Emergency contacts, Academic term, My account, System status (`SettingsController::TABS`).
+- **Academic term** (moved here 2026-11-23, no longer in the sidebar): the current term, Add a term (`StoreAcademicTermRequest`, bag `academicTerm`) and "Set as current" with a confirmation (`AcademicTermController`, messages `addedMessage`/`currentMessage`). GET /admin/academic-terms redirects to the tab. The dashboard only shows the warning banner when action is needed (`AcademicTerm::warning`), linking here. See registration.md.
   - `?tab=` picks the open tab. The server renders the other panels with `hidden`, and every tab is a plain link, so the page works without JavaScript.
   - Each save and each validation error redirects to its own tab (`SettingsController::tabUrl()`).
   - `resources/js/settings-tabs.js` switches tabs without a reload and updates `?tab=` with `replaceState`. It uses roving tabindex with Arrow keys, Home and End (ARIA tabs pattern).
@@ -30,6 +31,20 @@ Read this before touching /admin/settings, the footer contact details, emergency
   - It polls rather than using Server-Sent Events: `php artisan serve` on Windows handles one request at a time, so a held-open stream would block the site. Reverb isn't installed.
   - The count is the database. A device that blocks notifications in its browser settings stays counted until the next alert push to it fails (404/410), when the push package deletes it.
 - The page includes `partials.push-alerts` so the admin can turn alerts on or off for this browser.
+
+## Reports for admins (built 2026-11-23)
+- A new concern (`ConcernController::store`, web, app and footer) and every "I need help" (`NeedHelpController`) queue `SendAdminReportPush` with an `AdminReport` (title, body, `data.screen` = `concern` + `concern_id` or `safety` + `alert_id`, a tag). It pushes only to `device_push_tokens` linked to admin accounts, on the Android channel `admin_reports` (high importance, the phone's default sound: the app leaves `sound` out, since Android reads "default" as a missing file), through `ExpoPush::deliver()` (shared with the alert push: dead tokens deleted, receipts checked 15 minutes later). The bell and email notifications are unchanged.
+- App: the `admin_reports` channel (`push.ts`; it deletes the older `admin` channel, made with a broken sound), `lib/admin-reports.ts` (a report arriving refreshes the Concerns badge, the open Concerns list and the live view at once; tapping opens the concern or "Who is safe"). The Concerns list and the live view also ask every 15 s while open.
+- Web: the sidebar's open-concerns badge refreshes every 30 s (`resources/js/admin-badges.js`, `GET /admin/concerns/count`, `ConcernInbox::openCount()` cached 15 s).
+- No staff alert requests (decided 2026-11-23: trusted staff send directly), and users can't reply on a concern, so those aren't reports.
+
+## Mobile app Settings (built 2026-11-23)
+Admin tabs: Dashboard, Map, Concerns, Accounts, Settings (My account with Sign out is inside Settings). `Api\Admin\SettingsController` (admin only) with the web's requests and messages: `GET/POST /api/admin/academic-terms`, `POST …/{term}/current`; `GET/PUT /api/admin/contact-details`; `GET/POST /api/admin/emergency-contacts`, `PUT/DELETE …/{id}`, `PATCH …/{id}/move {direction}` (`MoveEmergencyContactRequest`, shared with the web), `PATCH …/{id}/visibility`; `GET /api/admin/system-status` (the same checks, read-only). My account is the shared `/api/account`. Map data, photos and QR codes are "Open on the website" links. Tests: `Api/AdminSettingsApiTest.php`.
+
+## Admin dashboard (analytics, built 2026-11-23)
+- `App\Services\AdminAnalytics::summary()` is the one source for the web overview (`Admin\DashboardController`, `admin/dashboard-page`) and the app's dashboard (`GET /api/admin/dashboard`, admin only, plus `term_warning`). Counts only, never anyone's details. Campus days (Asia/Manila).
+- What it has: accounts (total, by role, new this week against last week), sign-ins per day for 14 days (website and app apart, from `login_activities`, so it only reaches back 90 days), the last 7 days against the 7 before and how many people, concerns (open, resolved, the last 30 days by topic, median hours to the first reply), alerts in 90 days (drills apart) and how many answered the last emergency, alert reach (phones + browsers), students by college (top 5 + "Other colleges"), and the rooms people start directions to and save (top 5).
+- Web: headline tiles (with the change in words), a stacked sign-ins column chart (hover or focus a day; "Show as a table"), ranked bars, the last-emergency meter, then the campus map, recent sign-ups and User activity as before. App: the same tiles and charts (`components/admin/analytics.tsx`, tap a day), kept on the phone for offline reading. Chart colors (both): website `#A8323F`, app `#A87A10`, checked together with the dataviz palette validator (color vision deficiency and contrast).
 
 ## Where the code is
 - Controllers: `Admin\SettingsController` (page), `ContactDetailsController`, `EmergencyContactController`, `SystemStatusController`, `Api\EmergencyContactController`, and the shared `AccountController` for My account (the portal settings use it too, see portal.md; its rules are in `App\Services\AccountChanges`, which the app's API uses too)

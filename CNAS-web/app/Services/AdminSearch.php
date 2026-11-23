@@ -88,7 +88,7 @@ class AdminSearch
             ['Rooms', 'Campus map', 'admin.rooms.index', null, 'rooms offices labs classrooms'],
             ['360° photos', 'Campus map', 'admin.panoramas.index', null, '360 photos panoramas street view'],
             ['Accounts', 'People', 'admin.accounts.index', null, 'accounts users students faculty staff create delete trusted'],
-            ['Academic term', 'Site', 'admin.academic-terms.index', null, 'academic term semester school year registration cor'],
+            ['Academic term', 'Settings', 'admin.settings', $tab('academic-term'), 'academic term semester school year registration cor'],
             ['Contact details', 'Settings', 'admin.settings', $tab('contact-details'), 'contact footer email phone facebook address'],
             ['Emergency contacts', 'Settings', 'admin.settings', $tab('emergency-contacts'), 'emergency numbers hotline clinic security guidance'],
             ['My account', 'Settings', 'admin.settings', $tab('my-account'), 'my account password email sign-in change'],

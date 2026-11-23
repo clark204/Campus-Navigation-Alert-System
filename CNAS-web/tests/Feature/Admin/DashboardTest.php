@@ -55,7 +55,7 @@ class DashboardTest extends TestCase
 
         $this->dashboard()
             ->assertSeeInOrder(['Most students by college', 'College of Criminology', '3', 'College of Information Technology', '1', 'Recent sign-ups'])
-            ->assertSee('style="width: 75%"', false)
+            ->assertSee('style="width: 75%;', false)
             ->assertDontSee('College of Midwifery</span>', false);
     }
 

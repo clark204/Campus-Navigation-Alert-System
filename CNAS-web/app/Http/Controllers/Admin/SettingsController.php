@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\Semester;
 use App\Http\Controllers\Controller;
+use App\Models\AcademicTerm;
 use App\Models\EmergencyContact;
 use App\Services\ContactDetails;
 use App\Services\SystemStatus;
@@ -10,7 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /**
- * Admin "Settings": one page with four tabs that each save on their own (see docs/settings.md). ?tab= picks the open
+ * Admin "Settings": one page with five tabs that each save on their own (see docs/settings.md). ?tab= picks the open
  * tab, so a reload or a save comes back to the same tab; resources/js/settings-tabs.js switches tabs without a reload.
  */
 class SettingsController extends Controller
@@ -19,6 +21,7 @@ class SettingsController extends Controller
     public const TABS = [
         'contact-details' => 'Contact details',
         'emergency-contacts' => 'Emergency contacts',
+        'academic-term' => 'Academic term',
         'my-account' => 'My account',
         'system-status' => 'System status',
     ];
@@ -32,6 +35,9 @@ class SettingsController extends Controller
             'activeTab' => is_string($tab) && array_key_exists($tab, self::TABS) ? $tab : array_key_first(self::TABS),
             'contact' => $contactDetails->all(),
             'emergencyContacts' => EmergencyContact::ordered(),
+            'currentTerm' => AcademicTerm::current(),
+            'terms' => AcademicTerm::newestFirst(),
+            'semesters' => Semester::cases(),
             'checks' => $status->checks($request),
         ]);
     }

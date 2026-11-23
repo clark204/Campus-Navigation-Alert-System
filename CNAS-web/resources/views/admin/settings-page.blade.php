@@ -1,4 +1,4 @@
-{{-- Admin "Settings" (SettingsController): four tabs. The server opens $activeTab (?tab=, Contact details by default)
+{{-- Admin "Settings" (SettingsController): five tabs. The server opens $activeTab (?tab=, Contact details by default)
      and hides the other panels; resources/js/settings-tabs.js switches tabs without a reload. Each section saves on its
      own, with its own message (admin/settings-message) and its own error bag, so an error shows only on its form. --}}
 @extends('layout.admin-layout')
@@ -23,7 +23,7 @@
     <div class="mx-auto flex max-w-3xl flex-col gap-6">
         <div>
             <h1 class="text-2xl font-semibold tracking-tight text-primary sm:text-3xl">Settings</h1>
-            <p class="mt-1 text-sm text-text-muted">Contact details, emergency numbers, your own account, and whether alerts can reach phones.</p>
+            <p class="mt-1 text-sm text-text-muted">Contact details, emergency numbers, the academic term, your own account, and whether alerts can reach phones.</p>
         </div>
 
         {{-- Plain links without JavaScript (?tab= opens the tab); with it, tabs switch in place (settings-tabs.js). --}}
@@ -204,7 +204,75 @@
             </div>
         </section>
 
-        {{-- 3. My account --}}
+        {{-- 3. Academic term (AcademicTermController): students can only register with a COR for the current term. --}}
+        @php($termErrors = $errors->getBag('academicTerm'))
+        <section id="academic-term" role="tabpanel" aria-labelledby="tab-academic-term" @if ($activeTab !== 'academic-term') hidden @endif
+            class="overflow-hidden rounded-2xl border border-border bg-surface">
+            <div class="px-5 pt-5">
+                <h2 class="font-semibold">Academic term</h2>
+                <p class="mt-1 text-sm text-text-muted">Students can only register with a COR for the current term. Change it at the start of each semester.</p>
+                @include('admin.settings-message', ['section' => 'term', 'class' => 'mt-4'])
+
+                <div class="mt-4 rounded-xl bg-bg-light px-4 py-3">
+                    <p class="text-xs font-semibold text-text-muted">Current term</p>
+                    @if ($currentTerm)
+                        <p class="mt-0.5 text-lg font-semibold text-primary">{{ $currentTerm->label() }}</p>
+                        @if ($currentTerm->set_current_at)
+                            <p class="text-xs text-text-muted">Set {{ $currentTerm->set_current_at->diffForHumans() }}</p>
+                        @endif
+                    @else
+                        <p class="mt-0.5 text-sm font-semibold text-red-700">None. Registration is closed until you set one.</p>
+                    @endif
+                </div>
+            </div>
+
+            <form method="POST" action="{{ route('admin.academic-terms.store') }}" novalidate data-submit-once class="grid gap-4 p-5 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                @csrf
+                <div>
+                    <label for="academic_year" class="{{ $label }}">Academic year</label>
+                    <input id="academic_year" name="academic_year" type="text" inputmode="numeric" maxlength="9" required
+                        value="{{ $termErrors->any() ? old('academic_year') : '' }}" placeholder="e.g. 2026-2027" class="login-input"
+                        @if ($termErrors->has('academic_year')) aria-invalid="true" aria-describedby="academic_year-error" @endif>
+                    @if ($termErrors->has('academic_year')) <p id="academic_year-error" class="{{ $fieldError }}">{{ $termErrors->first('academic_year') }}</p> @endif
+                </div>
+                <div>
+                    <label for="semester" class="{{ $label }}">Semester</label>
+                    <select id="semester" name="semester" required class="login-input"
+                        @if ($termErrors->has('semester')) aria-invalid="true" aria-describedby="semester-error" @endif>
+                        <option value="" disabled @selected(! ($termErrors->any() && old('semester')))>Choose a semester</option>
+                        @foreach ($semesters as $semester)
+                            <option value="{{ $semester->value }}" @selected($termErrors->any() && old('semester') === $semester->value)>{{ $semester->label() }}</option>
+                        @endforeach
+                    </select>
+                    @if ($termErrors->has('semester')) <p id="semester-error" class="{{ $fieldError }}">{{ $termErrors->first('semester') }}</p> @endif
+                </div>
+                <button type="submit" class="{{ $primaryButton }}">Add term</button>
+            </form>
+
+            <h3 class="border-t border-border px-5 pt-4 pb-2 text-sm font-semibold">All terms</h3>
+            @if ($terms->isEmpty())
+                <p class="px-5 pb-5 text-sm text-text-muted">No terms yet.</p>
+            @else
+                <ul class="divide-y divide-border border-t border-border">
+                    @foreach ($terms as $term)
+                        <li class="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+                            <span class="text-sm font-semibold">{{ $term->label() }}</span>
+                            @if ($term->is_current)
+                                <span class="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">Current</span>
+                            @else
+                                <form method="POST" action="{{ route('admin.academic-terms.current', $term) }}"
+                                    data-confirm="Set {{ $term->label() }} as current? Students can then only register with a COR for this term.">
+                                    @csrf
+                                    <button type="submit" class="{{ $smallButton }}">Set as current</button>
+                                </form>
+                            @endif
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
+        </section>
+
+        {{-- 4. My account --}}
         <section id="my-account" role="tabpanel" aria-labelledby="tab-my-account" @if ($activeTab !== 'my-account') hidden @endif
             class="overflow-hidden rounded-2xl border border-border bg-surface">
             <div class="px-5 pt-5">

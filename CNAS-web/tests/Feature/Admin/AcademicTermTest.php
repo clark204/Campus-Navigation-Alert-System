@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use App\Enums\Semester;
 use App\Enums\UserRole;
+use App\Http\Controllers\Admin\SettingsController;
 use App\Models\AcademicTerm;
 use App\Models\User;
 use Database\Seeders\AcademicTermSeeder;
@@ -49,13 +50,20 @@ class AcademicTermTest extends TestCase
         $this->assertNull(AcademicTerm::current());
     }
 
-    public function test_the_page_shows_the_current_term_and_all_terms(): void
+    public function test_the_old_page_opens_the_settings_tab(): void
+    {
+        $this->actingAs($this->admin())->get(route('admin.academic-terms.index'))
+            ->assertRedirect(SettingsController::tabUrl('academic-term'));
+    }
+
+    public function test_the_settings_tab_shows_the_current_term_and_all_terms(): void
     {
         AcademicTerm::factory()->term('2026-2027', Semester::First)->current()->create();
         AcademicTerm::factory()->term('2025-2026', Semester::Second)->create();
 
-        $this->actingAs($this->admin())->get(route('admin.academic-terms.index'))
+        $this->actingAs($this->admin())->get(SettingsController::tabUrl('academic-term'))
             ->assertOk()
+            ->assertSee('id="academic-term" role="tabpanel" aria-labelledby="tab-academic-term"', false)
             ->assertSeeInOrder(['Current term', 'AY 2026-2027, 1st Semester', 'All terms'])
             ->assertSee('AY 2025-2026, 2nd Semester')
             ->assertSee('data-confirm="Set AY 2025-2026, 2nd Semester as current? Students can then only register with a COR for this term."', false);
@@ -65,7 +73,7 @@ class AcademicTermTest extends TestCase
     {
         $this->actingAs($this->admin())
             ->post(route('admin.academic-terms.store'), ['academic_year' => '2027-2028', 'semester' => 'summer'])
-            ->assertRedirect(route('admin.academic-terms.index'))
+            ->assertRedirect(SettingsController::tabUrl('academic-term'))
             ->assertSessionHas('status', "AY 2027-2028, Summer was added. It isn't current until you set it.");
 
         $term = AcademicTerm::sole();
@@ -80,7 +88,8 @@ class AcademicTermTest extends TestCase
     {
         $this->actingAs($this->admin())
             ->post(route('admin.academic-terms.store'), ['academic_year' => $academicYear, 'semester' => '1st'])
-            ->assertSessionHasErrors(['academic_year' => 'The academic year must look like 2026-2027, with the second year one after the first.']);
+            ->assertRedirect(SettingsController::tabUrl('academic-term'))
+            ->assertSessionHasErrors(['academic_year' => 'The academic year must look like 2026-2027, with the second year one after the first.'], errorBag: 'academicTerm');
 
         $this->assertDatabaseCount('academic_terms', 0);
     }
@@ -89,7 +98,7 @@ class AcademicTermTest extends TestCase
     {
         $this->actingAs($this->admin())
             ->post(route('admin.academic-terms.store'), ['academic_year' => '2026-2027', 'semester' => '3rd'])
-            ->assertSessionHasErrors(['semester' => 'Choose a semester.']);
+            ->assertSessionHasErrors(['semester' => 'Choose a semester.'], errorBag: 'academicTerm');
     }
 
     public function test_a_term_cannot_be_added_twice(): void
@@ -98,7 +107,7 @@ class AcademicTermTest extends TestCase
 
         $this->actingAs($this->admin())
             ->post(route('admin.academic-terms.store'), ['academic_year' => '2026-2027', 'semester' => '1st'])
-            ->assertSessionHasErrors(['academic_year' => 'That term already exists.']);
+            ->assertSessionHasErrors(['academic_year' => 'That term already exists.'], errorBag: 'academicTerm');
     }
 
     public function test_an_admin_sets_the_current_term(): void
@@ -108,7 +117,7 @@ class AcademicTermTest extends TestCase
 
         $this->actingAs($this->admin())
             ->post(route('admin.academic-terms.current', $new))
-            ->assertRedirect(route('admin.academic-terms.index'))
+            ->assertRedirect(SettingsController::tabUrl('academic-term'))
             ->assertSessionHas('status', 'AY 2026-2027, 2nd Semester is now the current term.');
 
         $this->assertFalse($old->fresh()->is_current);
@@ -127,7 +136,8 @@ class AcademicTermTest extends TestCase
         $this->travel(1)->day();
         $this->actingAs($admin)->get(route('admin.dashboard'))
             ->assertSee('The current term (AY 2026-2027, 1st Semester) was set')
-            ->assertSee('Is it still right?');
+            ->assertSee('Is it still right?')
+            ->assertSee(e(SettingsController::tabUrl('academic-term')), false);
     }
 
     public function test_the_dashboard_warns_when_registration_is_closed(): void

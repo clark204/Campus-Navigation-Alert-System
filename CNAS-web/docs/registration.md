@@ -13,7 +13,7 @@ There is no admin approval. Students with problems contact the administrator (co
 - Student ID, program and college are read-only on the confirm step. The name can only be re-split, not changed.
 - Duplicate student ID is rejected with a "contact the administrator" message.
 - Consent checkbox is required (Data Privacy Act, RA 10173), on the web and in the app: `POST /api/register/cor` needs `consent=1` (`UploadCorWithConsentRequest`, 422 `errors.consent` without it). The app shows the same notice text as the web page.
-- Only CORs for the CURRENT term are accepted. The current term is one row in `academic_terms` (is_current). Admin changes it by hand each semester at /admin/academic-terms. No current term = registration closed.
+- Only CORs for the CURRENT term are accepted. The current term is one row in `academic_terms` (is_current). Admin changes it by hand each semester in Settings → Academic term (`/admin/settings?tab=academic-term`; the old /admin/academic-terms redirects there; the app has the same screen, settings.md). The dashboard (web banner, app card) warns when there is no current term or it was set 5 months ago (`AcademicTerm::warning`, `REMINDER_MONTHS`). No current term = registration closed.
 - Validator checks are all pass/fail: header text, labels, 8-digit student ID, AY + semester = current term, total units = sum of subjects, valid Date Enrolled, both printed copies match, known program code (a program missing from the `programs` table fails the COR).
 
 ## Where the code is

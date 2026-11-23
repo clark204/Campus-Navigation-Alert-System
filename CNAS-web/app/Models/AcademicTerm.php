@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\Semester;
 use Database\Factories\AcademicTermFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
@@ -57,6 +58,48 @@ class AcademicTerm extends Model
         );
 
         return $attributes === [] ? null : static::query()->hydrate([$attributes])->first();
+    }
+
+    /** Remind the admin to check the current term once it has been current this long. */
+    public const REMINDER_MONTHS = 5;
+
+    /**
+     * The current term has been current for REMINDER_MONTHS: the dashboard (web and app) asks whether it is still
+     * right.
+     */
+    public function mayBeOutdated(): bool
+    {
+        return $this->set_current_at?->lt(now()->subMonths(self::REMINDER_MONTHS)) ?? false;
+    }
+
+    /**
+     * The dashboard's warning when the admin should act (web banner and the app's card), or null: no current term
+     * ("closed": registration is closed) or one set REMINDER_MONTHS ago ("outdated").
+     *
+     * @return array{kind: 'closed'|'outdated', message: string}|null
+     */
+    public static function warning(): ?array
+    {
+        $current = static::current();
+
+        return match (true) {
+            $current === null => ['kind' => 'closed', 'message' => 'Registration is closed: no academic term is set as current.'],
+            $current->mayBeOutdated() => [
+                'kind' => 'outdated',
+                'message' => "The current term ({$current->label()}) was set {$current->set_current_at->diffForHumans()}. Is it still right? Students can only register with a COR for this term.",
+            ],
+            default => null,
+        };
+    }
+
+    /**
+     * Every term, newest first (Settings → Academic term, web and app).
+     *
+     * @return Collection<int, self>
+     */
+    public static function newestFirst(): Collection
+    {
+        return static::orderByDesc('academic_year')->orderByDesc('semester')->get();
     }
 
     /**
