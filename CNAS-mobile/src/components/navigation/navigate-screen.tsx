@@ -13,6 +13,7 @@ import { placesStore, recordRecentPlace, toggleSavedPlace } from '@/lib/portal-d
 import { isAdmin } from '@/lib/roles';
 import { useSession } from '@/lib/session';
 import { colors, fonts, space, type } from '@/theme';
+import { usePillSpace } from '../alert-overlays';
 import { Icon } from '../icon';
 import { useMapFrame, ZoomableMap, type CameraTarget } from '../zoomable-map';
 import { DestinationPin, RouteLayer, SAFE_COLOR, StartDot, UserDot } from './map-layers';
@@ -90,6 +91,9 @@ type NavigatorProps = { map: CampusMap; navigation: Navigation; width: number; h
 
 function Navigator({ map, navigation, width, height }: NavigatorProps) {
   const insets = useSafeAreaInsets();
+  // During an emergency the red pill floats under the status bar: the instruction card and the search row start
+  // below it, so it never covers the turn instruction.
+  const topInset = insets.top + usePillSpace();
   const params = useLocalSearchParams<{ from?: string; to?: string }>();
   const frame = useMapFrame(map, width, height, insets.top + PLAN_TOP, PLAN_BOTTOM);
   const { user } = useSession();
@@ -359,7 +363,7 @@ function Navigator({ map, navigation, width, height }: NavigatorProps) {
       {walking ? (
         <>
           <View style={styles.top} onLayout={measureTop}>
-            <InstructionBanner view={view} topInset={insets.top} />
+            <InstructionBanner view={view} topInset={topInset} />
             <NavNotes view={view} />
           </View>
           <View style={[styles.mapButtons, { bottom: bottomHeight + space.md }]}>
@@ -395,7 +399,7 @@ function Navigator({ map, navigation, width, height }: NavigatorProps) {
         </View>
       ) : (
         <>
-          <View style={[styles.top, styles.planTop, { paddingTop: insets.top + space.sm }]} onLayout={measureTop}>
+          <View style={[styles.top, styles.planTop, { paddingTop: topInset + space.sm }]} onLayout={measureTop}>
             <View style={styles.searchRow}>
               <Pressable
                 onPress={() => {

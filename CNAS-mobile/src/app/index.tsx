@@ -3,9 +3,9 @@ import { StatusBar } from 'expo-status-bar';
 import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AlertBanner } from '@/components/alert-banner';
 import { EmergencyContacts } from '@/components/emergency-contacts';
 import { Icon } from '@/components/icon';
+import { Button } from '@/components/ui';
 import { Logo } from '@/components/logo';
 import { MiniMap } from '@/components/mini-map';
 import { PushCard } from '@/components/push-card';
@@ -38,7 +38,6 @@ export default function Welcome() {
         <View style={[styles.hero, { minHeight: height - 56, paddingTop: insets.top + space.md }]}>
           <HeroPhoto />
 
-          <AlertBanner />
 
           <View style={styles.top}>
             <Rise index={0} play={introDone} style={styles.brand}>
@@ -76,8 +75,8 @@ export default function Welcome() {
 
           <Rise index={3} play={introDone}>
             <Text style={styles.headline} accessibilityRole="header" maxFontSizeMultiplier={1.25}>
-              Know your campus.{'\n'}
-              <Text style={styles.headlineGold}>Find your path.</Text>
+              Find your way{'\n'}
+              <Text style={styles.headlineGold}>Around TCC</Text>
             </Text>
           </Rise>
 
@@ -104,6 +103,8 @@ export default function Welcome() {
         </View>
 
         <View style={[styles.sheet, { paddingBottom: insets.bottom + space.xl }]}>
+          {/* Every alert stays here: a toast that closed or a swiped-away notification is never lost. */}
+          <Button title="Campus alerts" variant="quiet" onPress={() => router.push('/campus-alerts')} />
           <PushCard compact />
           <EmergencyContacts />
         </View>

@@ -7,6 +7,7 @@ import { BackLink, Body, Button, Field, Notice, Screen, Title } from './ui';
 import { api, ApiError, errorMessage } from '@/lib/api';
 import { useSession } from '@/lib/session';
 import type { EmailState, User } from '@/lib/types';
+import { useToast } from '@/lib/toasts';
 import { colors, fonts, radius, space, type } from '@/theme';
 
 /** "Please wait 42 seconds before asking for a new code." → 42 (EmailCodes::send). */
@@ -29,7 +30,7 @@ export function ChangeEmailScreen() {
   const [notice, setNotice] = useState<Message | null>(null);
   const [busy, setBusy] = useState<'send' | 'confirm' | 'resend' | 'cancel' | null>(null);
   const [resend, setResend] = useState({ key: 0, wait: 0 });
-  const [done, setDone] = useState<string | null>(null);
+  const toast = useToast();
 
   const apply = (next: EmailState) => {
     setState(next);
@@ -79,7 +80,7 @@ export function ChangeEmailScreen() {
     try {
       const result = await api<EmailState & { message: string }>('/account/email', { method: 'PUT', body: { email } });
       apply(result);
-      setNotice({ tone: 'success', text: result.message });
+      toast(result.message);
       setCode('');
     } catch (failure) {
       setFieldError(fail(failure));
@@ -95,7 +96,8 @@ export function ChangeEmailScreen() {
     try {
       const result = await api<{ message: string; user: User }>('/account/email/confirm', { method: 'PUT', body: { code } });
       setUser(result.user);
-      setDone(result.message);
+      toast(result.message);
+      router.back();
     } catch (failure) {
       setFieldError(fail(failure));
     } finally {
@@ -110,7 +112,7 @@ export function ChangeEmailScreen() {
     try {
       const result = await api<EmailState & { message: string }>('/account/email/resend', { method: 'POST' });
       apply(result);
-      setNotice({ tone: 'success', text: result.message });
+      toast(result.message);
       setCode('');
     } catch (failure) {
       setNotice({ tone: 'error', text: fail(failure) });
@@ -127,7 +129,7 @@ export function ChangeEmailScreen() {
     try {
       const result = await api<EmailState & { message: string }>('/account/email', { method: 'DELETE' });
       setState(result);
-      setNotice({ tone: 'success', text: result.message });
+      toast(result.message);
       setEmail('');
     } catch (failure) {
       setNotice({ tone: 'error', text: errorMessage(failure) });
@@ -135,17 +137,6 @@ export function ChangeEmailScreen() {
       setBusy(null);
     }
   };
-
-  if (done) {
-    return (
-      <Screen>
-        <BackLink label="Account" />
-        <Title>Email changed</Title>
-        <Notice tone="success">{done}</Notice>
-        <Button title="Done" onPress={() => router.back()} />
-      </Screen>
-    );
-  }
 
   const pending = state?.pending ?? null;
   const verifyingCurrent = pending !== null && pending.email === state?.email;

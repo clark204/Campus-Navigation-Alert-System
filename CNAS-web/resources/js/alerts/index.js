@@ -5,6 +5,7 @@
 import { Alarm } from './alarm.js';
 import { bannerAlert, msUntilExpiry, rememberDismissed, showsSafeButton } from './banner-state.js';
 import { renderBanner } from './fill.js';
+import { firstFix, helpLine, HelpTracker } from './help-tracker.js';
 import { initPush } from './push.js';
 import { load, save } from './storage.js';
 import { Popup } from './popup.js';
@@ -30,6 +31,34 @@ function init(root) {
     // Alerts this person asked for help in (one answer per alert: the latest one counts).
     const askedForHelp = new Set(root.querySelector('[data-need-help][data-requested]') && current ? [current.id] : []);
 
+    // While their help request is open: share where they are and show "<admin> is on the way" (help-tracker.js).
+    let tracker = null;
+    const showHelpState = (state) => {
+        root.querySelectorAll('[data-help-state]').forEach((line) => {
+            line.textContent = helpLine(state);
+            line.hidden = false;
+        });
+        root.querySelectorAll('[data-need-help-status]').forEach((line) => (line.textContent = ''));
+        if (state.stopped && current) {
+            askedForHelp.delete(current.id);
+            renderSafeButtons();
+        }
+    };
+    const startTracking = (alertId, { share, fix = null }) => {
+        tracker?.stop();
+        tracker = new HelpTracker({
+            pingUrl: root.dataset.helpPingUrl.replace('__ALERT__', alertId),
+            csrfToken: csrfToken(),
+            geolocation: navigator.geolocation,
+            onState: showHelpState,
+        });
+        tracker.start({ share, fix });
+    };
+    const stopTracking = () => {
+        tracker?.stop();
+        tracker = null;
+    };
+
     const renderSafeButtons = () => {
         // Only an emergency asks "I'm safe" or "I need help": the buttons are there only then.
         root.querySelectorAll('[data-safety-answers]').forEach((answers) => (answers.hidden = !showsSafeButton(current)));
@@ -45,14 +74,23 @@ function init(root) {
             if (current?.status === 'active') form.action = root.dataset.helpUrl.replace('__ALERT__', current.id);
             details.toggleAttribute('data-requested', current !== null && askedForHelp.has(current.id));
         });
+        // The help state line goes with an open request, except "Marked as helped", which stays to be read.
+        root.querySelectorAll('[data-help-state]').forEach((line) => {
+            const open = current !== null && askedForHelp.has(current.id);
+            if (!open && (markedSafe.has(current?.id) || current?.status !== 'active')) line.hidden = true;
+        });
     };
 
     // The banner shows less than the alert: the green one expires, can be closed, and is left out of the admin console.
+    // A banner that was on the page from the first render keeps its place. One that shows up later (a poll found a new
+    // alert) floats over the top of the page instead, so nothing the person is reading jumps down.
+    const bannerInFlow = !banner.hidden;
     let expiryTimer = null;
     const showBanner = (alert) => {
         const shown = bannerAlert(alert, { dismissedIds: load('dismissed', []), hideResolved: 'hideResolved' in root.dataset });
         // Only redraw on a change, so screen readers don't re-announce the same alert.
         if ((shown?.version ?? '') !== banner.dataset.version) renderBanner(banner, shown);
+        banner.toggleAttribute('data-floating', !bannerInFlow && !banner.hidden);
         // Hide it on time even if the next poll is late (or the device is offline).
         clearTimeout(expiryTimer);
         const wait = msUntilExpiry(shown);
@@ -64,6 +102,8 @@ function init(root) {
     });
 
     const apply = (alert) => {
+        // The alert ended or changed: nothing to share any more.
+        if (tracker && (alert?.status !== 'active' || alert.id !== current?.id)) stopTracking();
         current = alert;
         window.cnasAlert = alert;
         window.dispatchEvent(new CustomEvent('cnas:alert', { detail: alert }));
@@ -102,6 +142,11 @@ function init(root) {
     };
 
     apply(current);
+    // Came back to a page with their request still open: keep sharing (if they agreed before) and learn its state.
+    if (current?.status === 'active' && askedForHelp.has(current.id)) {
+        startTracking(current.id, { share: load('helpShare', false) === true });
+        tracker.ping();
+    }
     setInterval(poll, POLL_MS);
     document.addEventListener('visibilitychange', () => !document.hidden && poll());
     // A push arrived (public/sw.js): check now rather than at the next poll.
@@ -146,6 +191,7 @@ function init(root) {
         if (response?.ok) {
             markedSafe.add(alertId);
             askedForHelp.delete(alertId);
+            stopTracking();
             renderSafeButtons();
         } else if (response?.status !== 409) {
             form.submit();
@@ -159,16 +205,30 @@ function init(root) {
         event.preventDefault();
         const alertId = current.id;
         const status = form.querySelector('[data-need-help-status]');
+        const button = form.querySelector('button[type="submit"]');
+        const share = form.querySelector('[data-help-share]')?.checked ?? false;
+        // Where they are, if they agreed and the browser answers in time (the request goes without it otherwise).
+        button.disabled = true;
+        if (share) status.textContent = 'Finding your location…';
+        const { fix, denied } = share ? await firstFix(navigator.geolocation) : { fix: null, denied: false };
+        form.querySelector('[data-help-latitude]').value = fix?.latitude ?? '';
+        form.querySelector('[data-help-longitude]').value = fix?.longitude ?? '';
+        form.querySelector('[data-help-accuracy]').value = fix?.accuracy ?? '';
         const response = await fetch(form.action, {
             method: 'POST',
             headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() },
             body: new FormData(form),
         }).catch(() => null);
+        button.disabled = false;
         if (response?.ok) {
-            const { message } = await response.json();
+            const { help } = await response.json();
             askedForHelp.add(alertId);
             markedSafe.delete(alertId);
-            root.querySelectorAll('[data-need-help-status]').forEach((line) => (line.textContent = message));
+            save('helpShare', share && !denied);
+            startTracking(alertId, { share: share && !denied, fix });
+            showHelpState({ help, sharing: fix !== null, denied, stopped: false });
+            // The note is sent: fold it away so the state line and the route to safety stay in view.
+            root.querySelectorAll('[data-need-help]').forEach((details) => details.removeAttribute('open'));
             renderSafeButtons();
         } else if (response?.status === 422) {
             const { errors } = await response.json();

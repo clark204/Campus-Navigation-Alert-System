@@ -6,6 +6,7 @@ import { Body, Button, Field, Notice, Screen, Title } from '@/components/ui';
 import { api, ApiError, errorMessage } from '@/lib/api';
 import { useSession } from '@/lib/session';
 import type { User } from '@/lib/types';
+import { useToast } from '@/lib/toasts';
 import { fonts } from '@/theme';
 
 /** "Please wait 42 seconds before asking for a new code." → 42 (EmailCodes::send). */
@@ -23,6 +24,7 @@ export default function VerifyEmail() {
   const [sending, setSending] = useState(false);
   const [codeError, setCodeError] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
+  const toast = useToast();
   const [resend, setResend] = useState({ key: 0, wait: 0 });
 
   const verify = async () => {
@@ -45,7 +47,7 @@ export default function VerifyEmail() {
     setNotice(null);
     try {
       const result = await api<{ message: string; resend_in: number }>('/email/resend', { method: 'POST' });
-      setNotice({ tone: 'success', text: result.message });
+      toast(result.message);
       setResend(({ key }) => ({ key: key + 1, wait: result.resend_in }));
       setCode('');
     } catch (failure) {

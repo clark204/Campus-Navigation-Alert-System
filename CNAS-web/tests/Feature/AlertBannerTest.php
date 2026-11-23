@@ -52,7 +52,8 @@ class AlertBannerTest extends TestCase
                 'severity' => 'emergency',
                 'severity_label' => 'Emergency',
                 'title' => 'Fire on campus',
-                'message' => 'A fire has been reported on campus.',
+                'message' => 'A fire has been reported.',
+                'what_to_do' => 'Leave the building now. Go to the open field.',
                 'instructions' => $alert->instructions,
                 'is_drill' => true,
                 'status' => 'active',
@@ -189,7 +190,7 @@ class AlertBannerTest extends TestCase
             ->assertSee('data-alert-banner', false)
             ->assertSee('data-state="active"', false)
             ->assertSee('data-drill', false)
-            ->assertSeeInOrder(['DRILL', 'Fire', 'NEE Building', 'Fire on campus', 'A fire has been reported on campus.', 'Show route to safety'])
+            ->assertSeeInOrder(['DRILL', 'Fire', 'NEE Building', 'Fire on campus', 'Leave the building now. Go to the open field.', 'A fire has been reported.', 'Show route to safety'])
             ->assertSee(route('navigate', ['evacuate' => 1]), false)
             ->assertSee(route('api.alerts.active'), false);
     }

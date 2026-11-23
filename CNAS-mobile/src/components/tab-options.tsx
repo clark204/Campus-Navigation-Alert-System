@@ -8,13 +8,16 @@ import { Icon, type IconName } from './icon';
  * The bottom tab bar shared by the admin and portal layouts: white, maroon for the open tab, large labels. Sized by
  * hand because Instrument Sans is taller than the system font, which the default bar height clips.
  */
+/** The bar's height above the bottom safe area (the toasts float just above it). */
+export const TAB_BAR_HEIGHT = 64;
+
 export function useTabBarOptions(): BottomTabNavigationOptions {
   const insets = useSafeAreaInsets();
   return {
     headerShown: false,
     tabBarActiveTintColor: colors.primary,
     tabBarInactiveTintColor: colors.muted,
-    tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border, height: 64 + insets.bottom, paddingTop: 6, paddingBottom: insets.bottom + 6 },
+    tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border, height: TAB_BAR_HEIGHT + insets.bottom, paddingTop: 6, paddingBottom: insets.bottom + 6 },
     tabBarLabelStyle: { fontFamily: fonts.semibold, fontSize: 12, lineHeight: 16 },
     sceneStyle: { backgroundColor: colors.bg },
   };

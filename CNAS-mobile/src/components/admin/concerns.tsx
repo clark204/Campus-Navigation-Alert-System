@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { useReportArrivals } from '@/lib/admin-reports';
 import { campusDateTime, concernsStore, type ConcernConversation, type ConcernPage, type ConcernRow } from '@/lib/admin';
 import { api, ApiError, errorMessage } from '@/lib/api';
+import { useToast } from '@/lib/toasts';
 import { colors, fonts, radius, space, type } from '@/theme';
 import { Chips } from '../alert-admin/parts';
 import { BackLink, Body, Button, Checkbox, Field, Notice, Screen, Title } from '../ui';
@@ -129,6 +130,7 @@ export function ConcernScreen() {
   const [resolve, setResolve] = useState(true);
   const [replyError, setReplyError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const toast = useToast();
   const [busy, setBusy] = useState<'reply' | 'status' | null>(null);
 
   useFocusEffect(
@@ -151,7 +153,7 @@ export function ConcernScreen() {
     try {
       const result = await api<{ message: string; data: ConcernConversation }>(`/admin/concerns/${id}/replies`, { method: 'POST', body: { message: reply, resolve } });
       setConcern(result.data);
-      setNotice(result.message);
+      toast(result.message);
       setReply('');
       concernsStore.load(true);
     } catch (failure) {
@@ -168,7 +170,7 @@ export function ConcernScreen() {
     try {
       const result = await api<{ message: string; data: ConcernConversation }>(`/admin/concerns/${id}/${concern.status === 'open' ? 'resolve' : 'reopen'}`, { method: 'PATCH' });
       setConcern(result.data);
-      setNotice(result.message);
+      toast(result.message);
       concernsStore.load(true);
     } catch (failure) {
       setNotice(errorMessage(failure));
@@ -212,7 +214,7 @@ export function ConcernScreen() {
             </View>
           ))}
 
-          {notice && <Notice tone="success">{notice}</Notice>}
+          {notice && <Notice tone="error">{notice}</Notice>}
 
           <View style={styles.replyBox}>
             <Text style={type.label}>To {concern.email}</Text>

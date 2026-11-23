@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { campusDateTime, generatePassword, type AccountDetails, type AccountOptions, type AccountPage, type AccountRow, type Role } from '@/lib/admin';
 import { api, ApiError, errorMessage } from '@/lib/api';
+import { useToast } from '@/lib/toasts';
 import { colors, fonts, radius, space, type } from '@/theme';
 import { Chips } from '../alert-admin/parts';
 import { Icon } from '../icon';
@@ -162,6 +163,7 @@ export function AccountViewScreen() {
   const [account, setAccount] = useState<AccountDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<Message>(null);
+  const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
 
   useFocusEffect(
@@ -179,7 +181,7 @@ export function AccountViewScreen() {
     try {
       const result = await api<{ message: string; data?: AccountDetails }>(`/admin/accounts/${id}${path}`, { method, body });
       if (result.data) setAccount(result.data);
-      setNotice({ tone: 'success', text: result.message });
+      toast(result.message);
       return result;
     } catch (failure) {
       setNotice({ tone: 'error', text: failure instanceof ApiError ? (Object.values(failure.fields)[0] ?? failure.message) : errorMessage(failure) });
@@ -357,6 +359,7 @@ export function AccountFormScreen() {
   const [busy, setBusy] = useState(false);
   const [picking, setPicking] = useState(false);
   const [done, setDone] = useState<{ message: string; id: number } | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     api<AccountOptions>('/admin/accounts/options').then(setOptions, (failure) => setNotice(errorMessage(failure)));
@@ -409,6 +412,7 @@ export function AccountFormScreen() {
             method: 'POST',
             body: { ...details, role: form.role, password: form.password, trusted_for_alerts: form.role !== 'student' && form.trusted_for_alerts },
           });
+      toast(result.message);
       if (editing) router.back();
       else setDone({ message: result.message, id: result.data.id });
     } catch (failure) {
@@ -423,7 +427,6 @@ export function AccountFormScreen() {
     return (
       <Screen>
         <Title>Account ready</Title>
-        <Notice tone="success">{done.message}</Notice>
         <View style={styles.card}>
           <Detail label="Email" value={form.email.trim().toLowerCase()} />
           <Detail label="Temporary password" value={form.password} />

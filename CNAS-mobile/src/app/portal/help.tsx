@@ -8,6 +8,7 @@ import { BackLink, Body, Button, Field, Notice, Screen, Title } from '@/componen
 import { api, ApiError, errorMessage } from '@/lib/api';
 import { bellStore } from '@/lib/portal-data';
 import type { Concern, ConcernTopic } from '@/lib/types';
+import { useToast } from '@/lib/toasts';
 import { colors, fonts, radius, space, type } from '@/theme';
 
 // StoreConcernRequest::MESSAGE_MAX and the web's message rules.
@@ -32,6 +33,7 @@ export default function Help() {
   const [message, setMessage] = useState('');
   const [errors, setErrors] = useState<{ topic?: string; message?: string }>({});
   const [notice, setNotice] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
+  const toast = useToast();
   const [sending, setSending] = useState(false);
 
   // State is only set when the answer comes (the effect below runs it on open; pull to refresh and Try again too).
@@ -67,7 +69,7 @@ export default function Help() {
     setNotice(null);
     try {
       const result = await api<{ message: string }>('/concerns', { method: 'POST', body: { topic, message } });
-      setNotice({ tone: 'success', text: result.message });
+      toast(result.message);
       setMessage('');
       setTopic(null);
       load();

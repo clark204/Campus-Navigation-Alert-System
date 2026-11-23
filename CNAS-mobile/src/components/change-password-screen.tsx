@@ -5,6 +5,7 @@ import { BackLink, Body, Button, Field, Notice, Screen, Title } from './ui';
 import { api, ApiError, errorMessage } from '@/lib/api';
 import { useSession } from '@/lib/session';
 import type { User } from '@/lib/types';
+import { useToast } from '@/lib/toasts';
 
 type Errors = { current_password?: string; password?: string; general?: string };
 
@@ -20,7 +21,7 @@ export function ChangePasswordScreen() {
   const [confirmation, setConfirmation] = useState('');
   const [errors, setErrors] = useState<Errors>({});
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState<string | null>(null);
+  const toast = useToast();
 
   const save = async () => {
     setBusy(true);
@@ -31,10 +32,8 @@ export function ChangePasswordScreen() {
         body: { current_password: current, password, password_confirmation: confirmation },
       });
       setUser(result.user);
-      setDone(result.message);
-      setCurrent('');
-      setPassword('');
-      setConfirmation('');
+      toast(result.message);
+      router.back();
     } catch (failure) {
       if (failure instanceof ApiError && failure.status === 422) {
         setErrors({ current_password: failure.field('current_password'), password: failure.field('password') });
@@ -45,18 +44,6 @@ export function ChangePasswordScreen() {
       setBusy(false);
     }
   };
-
-  if (done) {
-    return (
-      <Screen>
-        <BackLink label="Account" />
-        <Title>Password changed</Title>
-        <Notice tone="success">{done}</Notice>
-        <Body muted>Use your new password the next time you sign in.</Body>
-        <Button title="Done" onPress={() => router.back()} />
-      </Screen>
-    );
-  }
 
   return (
     <Screen>

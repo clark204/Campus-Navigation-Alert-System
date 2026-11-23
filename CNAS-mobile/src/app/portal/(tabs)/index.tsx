@@ -2,13 +2,14 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { AlertBanner } from '@/components/alert-banner';
 import { EmergencyContacts } from '@/components/emergency-contacts';
 import { Icon } from '@/components/icon';
 import { MiniMap } from '@/components/mini-map';
 import { Badge, DirectionsButton, MenuList, RoomLine, useMinute, type MenuItem } from '@/components/portal-parts';
 import { PushCard } from '@/components/push-card';
 import { Button, Screen } from '@/components/ui';
+import { alertKind } from '@/lib/alert-rules';
+import { useAlerts } from '@/lib/alerts';
 import { bellStore, placesStore, scheduleStore, useResource } from '@/lib/portal-data';
 import { campusNow, classesOn, formatTime, nextClass, scheduleName } from '@/lib/schedule';
 import { useSession } from '@/lib/session';
@@ -21,6 +22,7 @@ import { colors, fonts, radius, space, type } from '@/theme';
  */
 export default function PortalHome() {
   const { user, setVerifyLater } = useSession();
+  const { banner: currentAlert } = useAlerts();
   const schedule = useResource(scheduleStore);
   const places = useResource(placesStore);
   const bell = useResource(bellStore);
@@ -73,6 +75,13 @@ export default function PortalHome() {
       badge: unread,
       onPress: () => router.push('/portal/help'),
     },
+    {
+      // Every alert stays here, so a toast that closed or a swiped-away notification is never lost.
+      title: 'Alerts',
+      detail: currentAlert ? `${alertKind(currentAlert)}: ${currentAlert.title}` : 'Campus alerts from the last 30 days',
+      icon: 'other',
+      onPress: () => router.push('/portal/campus-alerts'),
+    },
   ];
 
   return (
@@ -99,7 +108,6 @@ export default function PortalHome() {
         <MiniMap />
       </View>
 
-      <AlertBanner />
 
       {user.must_change_password && (
         <View style={styles.card}>

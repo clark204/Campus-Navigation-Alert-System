@@ -12,6 +12,7 @@
     data-poll-url="{{ route('api.alerts.active') }}"
     data-safe-url="{{ route('alerts.safe', ['alert' => '__ALERT__']) }}"
     data-help-url="{{ route('alerts.help', ['alert' => '__ALERT__']) }}"
+    data-help-ping-url="{{ route('alerts.help.ping', ['alert' => '__ALERT__']) }}"
     data-push-url="{{ route('push-subscriptions.store') }}"
     data-alarm-sound="{{ asset('sounds/alarm.wav') }}"
     data-drill-sound="{{ asset('sounds/drill.wav') }}"

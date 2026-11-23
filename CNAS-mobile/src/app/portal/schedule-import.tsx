@@ -4,10 +4,11 @@ import { useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/icon';
-import { BackLink, Body, Button, Notice, Screen, Title } from '@/components/ui';
+import { BackLink, Body, Button, Screen, Title } from '@/components/ui';
 import { api, ApiError, errorMessage } from '@/lib/api';
 import { scheduleStore } from '@/lib/portal-data';
 import type { ClassItem } from '@/lib/types';
+import { useToast } from '@/lib/toasts';
 import { colors, fonts, radius, space, type } from '@/theme';
 
 // Same texts and limit as the web (portal/schedule-import-page, RegistrationService::COR_RULES).
@@ -24,14 +25,13 @@ export default function ScheduleImport() {
   const [file, setFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState<string | null>(null);
+  const toast = useToast();
 
   const pick = async () => {
     const result = await DocumentPicker.getDocumentAsync({ type: 'application/pdf', copyToCacheDirectory: true });
     if (result.canceled) return;
     const asset = result.assets[0];
     setFile(asset);
-    setDone(null);
     setError(asset.size && asset.size > MAX_BYTES ? FILE_MESSAGE : null);
   };
 
@@ -49,8 +49,8 @@ export default function ScheduleImport() {
     try {
       const result = await api<{ data: ClassItem[]; meta: { term: string | null }; message: string }>('/schedule/import', { method: 'POST', body: form, timeoutMs: 60000 });
       scheduleStore.set({ classes: result.data, term: result.meta.term });
-      setDone(result.message);
-      setFile(null);
+      toast(result.message);
+      router.back();
     } catch (failure) {
       setError(failure instanceof ApiError ? (failure.field('cor') ?? failure.message) : errorMessage(failure));
     } finally {
@@ -66,36 +66,27 @@ export default function ScheduleImport() {
         Upload your own COR{term ? ` for ${term}` : ''}. Use the PDF you downloaded; your classes are read from it.
       </Body>
 
-      {done ? (
-        <>
-          <Notice tone="success">{done}</Notice>
-          <Button title="See my schedule" onPress={() => router.back()} />
-        </>
-      ) : (
-        <>
-          <View style={styles.notes}>
-            <Text style={styles.note}>This replaces the classes that came from an earlier COR.</Text>
-            <Text style={[styles.note, styles.strong]}>Classes you changed by hand are kept.</Text>
-            <Text style={styles.note}>The file is deleted as soon as it has been read. Only your classes are saved.</Text>
-          </View>
+      <View style={styles.notes}>
+        <Text style={styles.note}>This replaces the classes that came from an earlier COR.</Text>
+        <Text style={[styles.note, styles.strong]}>Classes you changed by hand are kept.</Text>
+        <Text style={styles.note}>The file is deleted as soon as it has been read. Only your classes are saved.</Text>
+      </View>
 
-          <View style={{ gap: 6 }}>
-            <Text style={type.label}>Your COR (PDF, up to 5 MB)</Text>
-            <Button title={file ? 'Choose a different file' : 'Choose your COR (PDF)'} variant="quiet" onPress={pick} />
-            {file && (
-              <View style={styles.file}>
-                <Icon name="file" size={22} color={colors.primary} />
-                <Text style={[type.body, styles.fileName]} numberOfLines={1}>
-                  {file.name}
-                </Text>
-              </View>
-            )}
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+      <View style={{ gap: 6 }}>
+        <Text style={type.label}>Your COR (PDF, up to 5 MB)</Text>
+        <Button title={file ? 'Choose a different file' : 'Choose your COR (PDF)'} variant="quiet" onPress={pick} />
+        {file && (
+          <View style={styles.file}>
+            <Icon name="file" size={22} color={colors.primary} />
+            <Text style={[type.body, styles.fileName]} numberOfLines={1}>
+              {file.name}
+            </Text>
           </View>
+        )}
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+      </View>
 
-          <Button title="Import my classes" loadingTitle="Reading your COR…" loading={busy} disabled={!file} onPress={upload} />
-        </>
-      )}
+      <Button title="Import my classes" loadingTitle="Reading your COR…" loading={busy} disabled={!file} onPress={upload} />
     </Screen>
   );
 }

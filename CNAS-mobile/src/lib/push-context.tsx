@@ -20,7 +20,7 @@ import {
 import { openReport, reportArrived, reportOf } from './admin-reports';
 import { useSession } from './session';
 
-// In the foreground the app's own takeover, popup and banner show the alert (and sound the alarm), so an alert push
+// In the foreground the app's own takeover, toasts and red pill show the alert (and sound the alarm), so an alert push
 // arriving then is only listed, not shown as a second banner with a second sound.
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({

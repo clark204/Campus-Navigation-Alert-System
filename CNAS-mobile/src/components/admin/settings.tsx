@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Switch, Text, View } from 're
 import { api, ApiError, errorMessage } from '@/lib/api';
 import { SITE_URL } from '@/lib/config';
 import { useSession } from '@/lib/session';
+import { useToast } from '@/lib/toasts';
 import { colors, fonts, radius, space, type } from '@/theme';
 import { SignOutButton } from '../account-screen';
 import { Chips } from '../alert-admin/parts';
@@ -78,6 +79,7 @@ export function TermWarningCard({ warning }: { warning: TermWarning }) {
 export function AcademicTermScreen() {
   const [data, setData] = useState<Terms | null>(null);
   const [notice, setNotice] = useState<Message>(null);
+  const toast = useToast();
   const [year, setYear] = useState('');
   const [semester, setSemester] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -104,7 +106,7 @@ export function AcademicTermScreen() {
     setNotice(null);
     try {
       const result = await api<{ message: string }>('/admin/academic-terms', { method: 'POST', body: { academic_year: year, semester } });
-      setNotice({ tone: 'success', text: result.message });
+      toast(result.message);
       setYear('');
       setSemester(null);
       load();
@@ -121,7 +123,7 @@ export function AcademicTermScreen() {
     setNotice(null);
     try {
       const result = await api<{ message: string }>(`/admin/academic-terms/${term.id}/current`, { method: 'POST' });
-      setNotice({ tone: 'success', text: result.message });
+      toast(result.message);
       setConfirming(null);
       load();
     } catch (failure) {
@@ -207,6 +209,7 @@ type ContactForm = { name: string; phone: string; note: string; is_visible: bool
 export function EmergencyContactsScreen() {
   const [contacts, setContacts] = useState<Contact[] | null>(null);
   const [notice, setNotice] = useState<Message>(null);
+  const toast = useToast();
   const [editing, setEditing] = useState<number | 'new' | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -229,7 +232,7 @@ export function EmergencyContactsScreen() {
     setNotice(null);
     try {
       const result = await api<{ message: string }>(`/admin/emergency-contacts/${path}`, { method, body });
-      setNotice({ tone: 'success', text: result.message });
+      toast(result.message);
       await load();
     } catch (failure) {
       setNotice({ tone: 'error', text: failureText(failure) });
@@ -252,7 +255,7 @@ export function EmergencyContactsScreen() {
             contact={contact}
             onDone={(message) => {
               setEditing(null);
-              if (message) setNotice({ tone: 'success', text: message });
+              if (message) toast(message);
               load();
             }}
           />
@@ -286,7 +289,7 @@ export function EmergencyContactsScreen() {
           contact={null}
           onDone={(message) => {
             setEditing(null);
-            if (message) setNotice({ tone: 'success', text: message });
+            if (message) toast(message);
             load();
           }}
         />
@@ -372,6 +375,7 @@ export function ContactDetailsScreen() {
   const [form, setForm] = useState<Details | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState<Message>(null);
+  const toast = useToast();
   const [busy, setBusy] = useState(false);
 
   useFocusEffect(
@@ -391,7 +395,7 @@ export function ContactDetailsScreen() {
     try {
       const result = await api<{ message: string; data: Details }>('/admin/contact-details', { method: 'PUT', body: form });
       setForm(result.data);
-      setNotice({ tone: 'success', text: result.message });
+      toast(result.message);
     } catch (failure) {
       if (failure instanceof ApiError && failure.status === 422) setErrors(failure.fields);
       else setNotice({ tone: 'error', text: errorMessage(failure) });

@@ -12,14 +12,17 @@ import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { AlertOverlays } from '@/components/alert-overlays';
+import { AlertOverlays, EmergencyPill } from '@/components/alert-overlays';
+import { AlertToasts } from '@/components/alert-toasts';
 import { AlertsPrompt } from '@/components/alerts-prompt';
 import { Intro } from '@/components/intro';
+import { ToastHost } from '@/components/toast-host';
 import { AlertsProvider, useAlerts } from '@/lib/alerts';
 import { IntroDoneContext } from '@/lib/intro';
 import { PushProvider, usePush } from '@/lib/push-context';
 import { isAdmin } from '@/lib/roles';
 import { SessionProvider, useSession } from '@/lib/session';
+import { ToastProvider } from '@/lib/toasts';
 import { colors } from '@/theme';
 
 // The intro (components/intro.tsx) hides the native splash on its first frame.
@@ -39,12 +42,14 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <SessionProvider>
           <AlertsProvider>
-            <PushProvider>
-              <StatusBar style="dark" />
-              <App fontsReady={fontsReady} />
-              {/* A Modal, so it covers the screens, the intro and the alerts prompt. Guests get it too. */}
-              <AlertOverlays />
-            </PushProvider>
+            <ToastProvider>
+              <PushProvider>
+                <StatusBar style="dark" />
+                <App fontsReady={fontsReady} />
+                {/* A Modal, so it covers the screens, the intro and the alerts prompt. Guests get it too. */}
+                <AlertOverlays />
+              </PushProvider>
+            </ToastProvider>
           </AlertsProvider>
         </SessionProvider>
       </SafeAreaProvider>
@@ -67,14 +72,20 @@ function App({ fontsReady }: { fontsReady: boolean }) {
       {/* Once, after the intro: why the app asks to send notifications, then the phone's own question. */}
       {loaded && introDone && needsPrompt && <AlertsPrompt />}
       {!introDone && <Intro ready={loaded} fontsReady={fontsReady} urgent={takeover !== null} onDone={finishIntro} />}
+      {/* Floating over every screen, never part of a layout: the red pill after an emergency's takeover, and the toasts
+          (app messages, warnings, advisories, "All clear"). */}
+      {loaded && <AlertToasts />}
+      {loaded && introDone && <EmergencyPill />}
+      {loaded && introDone && <ToastHost />}
     </IntroDoneContext>
   );
 }
 
 /**
  * Which screens exist depends on the session (Expo Router protected routes), like the website's areas:
- * - guests: Welcome, Sign in, Register, Forgot password and the campus map
- * - guests and both signed-in areas: Navigate (walking directions)
+ * - guests: Welcome, Sign in, Register, Forgot password, the campus map and Alerts
+ * - guests and both signed-in areas: Navigate (walking directions); each area also has its own Alerts screen
+ *   (campus-alerts: the current alert and the last 30 days)
  * - signed in with an unverified email: Verify email (until "Skip for now")
  * - the admin: the admin layout (app/admin: Dashboard, Map, Account tabs)
  * - students, faculty and staff: the portal (app/portal: Home, Map, Account tabs, and the pages they open: My schedule,
@@ -102,6 +113,7 @@ function RootNavigator() {
         <Stack.Screen name="register" />
         <Stack.Screen name="forgot-password" />
         <Stack.Screen name="map" />
+        <Stack.Screen name="campus-alerts" />
       </Stack.Protected>
       <Stack.Protected guard={mustVerify}>
         <Stack.Screen name="verify-email" />

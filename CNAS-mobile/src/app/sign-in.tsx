@@ -1,9 +1,10 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { BackLink, Body, Button, Field, Notice, Screen, Title } from '@/components/ui';
 import { ApiError, errorMessage } from '@/lib/api';
 import { useSession } from '@/lib/session';
+import { useToast } from '@/lib/toasts';
 
 /** Sign in with an ID number or email (POST /api/login). Signing in moves on by itself (root layout). */
 export default function SignIn() {
@@ -14,6 +15,13 @@ export default function SignIn() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const toast = useToast();
+
+  // "Password changed. Sign in with the new one." after a reset: a toast, like the web's flash.
+  const notice = params.notice;
+  useEffect(() => {
+    if (notice) toast(notice);
+  }, [notice, toast]);
 
   const submit = async () => {
     setBusy(true);
@@ -38,7 +46,6 @@ export default function SignIn() {
       <Title>Sign in</Title>
       <Body muted>Use your school ID number or email address.</Body>
 
-      {params.notice ? <Notice tone="success">{params.notice}</Notice> : null}
       {general ? <Notice tone="error">{general}</Notice> : null}
 
       <Field

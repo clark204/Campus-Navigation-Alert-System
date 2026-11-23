@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\HelpPingController;
 use App\Http\Resources\AlertResource;
 use App\Models\Alert;
 use App\Models\SafetyCheck;
@@ -25,7 +26,9 @@ class ActiveAlertController extends Controller
         $data = $alert ? (new AlertResource($alert))->resolve($request) : null;
 
         if ($data !== null && $request->bearerToken() !== null) {
-            $data['my_safety_status'] = $this->safetyStatus($request, $alert);
+            $check = $this->safetyCheck($request, $alert);
+            $data['my_safety_status'] = $check?->status->value;
+            $data['my_help'] = $check ? HelpPingController::helpState($check) : null;
         }
 
         return response()
@@ -33,7 +36,10 @@ class ActiveAlertController extends Controller
             ->header('Cache-Control', 'no-store');
     }
 
-    private function safetyStatus(Request $request, Alert $alert): ?string
+    /**
+     * This user's answer during an active emergency (with "I need help", where their request is: `my_help`).
+     */
+    private function safetyCheck(Request $request, Alert $alert): ?SafetyCheck
     {
         if (! $alert->isActive() || ! $alert->isEmergency()) {
             return null;
@@ -41,6 +47,6 @@ class ActiveAlertController extends Controller
 
         $user = $request->user('sanctum');
 
-        return $user === null ? null : SafetyCheck::where('alert_id', $alert->id)->where('user_id', $user->id)->value('status')?->value;
+        return $user === null ? null : SafetyCheck::where('alert_id', $alert->id)->where('user_id', $user->id)->first();
     }
 }

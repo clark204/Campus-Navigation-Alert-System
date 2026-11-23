@@ -1,5 +1,8 @@
 {{-- Emergency banner (inside partials.alerts). Red while an alert is active, green for "All clear" or "False alarm".
      Server-rendered so it works without JavaScript; resources/js/alerts refills the data-field elements on each poll.
+     When it was on the page from the start it holds its own space. When a poll brings it in later it gets
+     data-floating: fixed over the top of the page with a shadow and only the short lines (kind, title, where, what to
+     do now), so the page under it never jumps.
      $compactBanner (the emergency map): title and location only, since the map's own panel has the rest. --}}
 @use('App\Enums\AlertType')
 @php
@@ -10,6 +13,8 @@
 <div data-alert-banner data-state="{{ $state }}" data-version="{{ $alert?->version() }}" data-severity="{{ $alert?->severity->value }}"
     @if ($alert?->is_drill) data-drill @endif @if ($alert === null) hidden @endif
     class="group/alert relative z-50 bg-alarm text-white data-[state=clear]:bg-safe
+        data-floating:fixed data-floating:inset-x-0 data-floating:top-0 data-floating:z-[90] data-floating:shadow-[0_12px_30px_-10px_rgb(0_0_0/.45)]
+        data-floating:motion-safe:animate-[banner-drop_.3s_ease-out]
         data-[severity=warning]:data-[state=active]:bg-orange-600
         data-[severity=advisory]:data-[state=active]:bg-yellow-300 data-[severity=advisory]:data-[state=active]:text-stone-900 data-[severity=advisory]:data-[state=active]:[&_.text-white\/85]:text-stone-800">
     <div class="hazard-tape hidden h-1.5 group-data-drill/alert:block" aria-hidden="true"></div>
@@ -43,7 +48,9 @@
                 </span>
             </p>
             <p class="mt-0.5 text-lg leading-snug font-semibold" data-field="title">{{ $alert?->title }}</p>
-            <div @class(['hidden' => $compactBanner ?? false])>
+            <p class="mt-0.5 text-base leading-snug font-bold group-data-[state=clear]/alert:hidden" data-field="what_to_do"
+                @if (! $alert?->whatToDo()) hidden @endif>{{ $alert?->whatToDo() }}</p>
+            <div @class(['group-data-floating/alert:hidden', 'hidden' => $compactBanner ?? false])>
                 <p class="mt-0.5 text-sm text-white/90 group-data-[state=clear]/alert:hidden" data-field="message">{{ $alert?->message }}</p>
                 <p class="mt-0.5 text-sm font-medium group-data-[state=clear]/alert:hidden" data-field="instructions"
                     @if (blank($alert?->instructions)) hidden @endif>{{ $alert?->instructions }}</p>

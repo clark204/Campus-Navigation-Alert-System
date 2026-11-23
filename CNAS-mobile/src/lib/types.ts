@@ -54,6 +54,8 @@ export type Alert = {
   severity_label: string;
   title: string;
   message: string;
+  /** "What to do now": the bold line (older alerts: the first sentence of their instructions; can be empty). */
+  what_to_do: string;
   instructions: string | null;
   is_drill: boolean;
   status: 'active' | 'resolved';
@@ -71,6 +73,15 @@ export type Alert = {
   banner_expires_at: string | null;
   /** Only when signed in: "safe" when this user already tapped "I'm safe" (any device). Null outside an emergency. */
   my_safety_status?: 'safe' | 'need_help' | null;
+  /** Only when signed in and this user asked for help: where the request is ("Rita Reyes is on the way."). */
+  my_help?: HelpState | null;
+};
+
+/** HelpPingController::helpState: this user's own help request. */
+export type HelpState = {
+  status: 'new' | 'responding' | 'helped';
+  label: string;
+  responder_name: string | null;
 };
 
 export type Weekday = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';

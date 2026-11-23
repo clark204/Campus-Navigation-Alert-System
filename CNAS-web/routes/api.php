@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\UserRole;
+use App\Http\Controllers\Admin\HelpRequestController;
 use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\ActiveAlertController;
 use App\Http\Controllers\Api\Admin\AccountController as AdminAccountController;
@@ -17,9 +18,11 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PasswordRecoveryController;
 use App\Http\Controllers\Api\PlaceController as ApiPlaceController;
 use App\Http\Controllers\Api\PushTokenController;
+use App\Http\Controllers\Api\RecentAlertsController;
 use App\Http\Controllers\Api\RegisterController;
 use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\ConcernController;
+use App\Http\Controllers\HelpPingController;
 use App\Http\Controllers\NeedHelpController;
 use App\Http\Controllers\PlaceController;
 use App\Http\Controllers\SafetyCheckController;
@@ -39,6 +42,8 @@ Route::post('/register', [RegisterController::class, 'store'])
 
 // Emergency banner: polled every 15 seconds by every page (guests included) and the mobile app. Cached (Alert::current).
 Route::get('/alerts/active', ActiveAlertController::class)->name('api.alerts.active');
+// The app's Alerts screen: the last 30 days, public like the active alert (docs/alerts.md).
+Route::get('/alerts/recent', RecentAlertsController::class)->middleware('throttle:60,1')->name('api.alerts.recent');
 
 // The campus map every map draws (web pages, guests included, and the mobile app). Cached until the map changes
 // (CampusMap::payload); the ETag lets a client that already has it get a 304. Not rate limited, like the alert
@@ -140,6 +145,14 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{alert}/safety', 'safety')->middleware(EnsureUserIsAdmin::class)->name('safety');
         });
 
+    // The admin's help queue in the app: the web's controller, answering JSON (the check must belong to the alert).
+    Route::controller(HelpRequestController::class)->prefix('alerts/{alert}/help/{safetyCheck}')->name('api.alerts.help.')
+        ->middleware(EnsureUserIsAdmin::class)->scopeBindings()
+        ->group(function () {
+            Route::post('/respond', 'respond')->name('respond');
+            Route::post('/helped', 'helped')->name('helped');
+        });
+
     // Admin > Concerns and Admin > Accounts for the app (admin only), with the web's services and requests
     // (ConcernInbox, AccountAdministration; docs/portal.md, docs/accounts.md).
     Route::middleware(EnsureUserIsAdmin::class)->prefix('admin')->name('api.admin.')->group(function () {
@@ -187,4 +200,5 @@ Route::middleware('auth:sanctum')->group(function () {
     // isn't an emergency. Unverified users can answer, like on the web.
     Route::post('/alerts/{alert}/safe', SafetyCheckController::class)->middleware('throttle:10,1')->name('api.alerts.safe');
     Route::post('/alerts/{alert}/help', NeedHelpController::class)->middleware('throttle:10,1')->name('api.alerts.help');
+    Route::post('/alerts/{alert}/help/ping', HelpPingController::class)->middleware('throttle:12,1')->name('api.alerts.help.ping');
 });
