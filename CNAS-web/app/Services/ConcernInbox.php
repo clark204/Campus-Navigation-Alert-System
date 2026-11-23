@@ -9,6 +9,7 @@ use App\Notifications\ConcernReceived;
 use App\Notifications\ConcernReplied;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
 
 /**
@@ -23,6 +24,18 @@ class ConcernInbox
     public const PER_PAGE = 20;
 
     public const REPLY_MAX = 5000;
+
+    /** The open count is asked by every admin page every 30 s (the sidebar badge): cached this many seconds. */
+    public const OPEN_COUNT_SECONDS = 15;
+
+    /**
+     * How many concerns are open: the sidebar badge (cached briefly, so polling admins cost one count query between
+     * them).
+     */
+    public function openCount(): int
+    {
+        return (int) Cache::remember('concerns.open-count', self::OPEN_COUNT_SECONDS, fn () => Concern::open()->count());
+    }
 
     /**
      * A folder: Open (newest first) or Resolved (most recently resolved first), with the sender and the reply count.

@@ -1,19 +1,45 @@
-{{-- "I'm safe" for signed-in users (banner and takeover). resources/js/alerts posts it to alerts.safe and marks every
-     copy of the button; without JavaScript it is a plain form. $size: 'small' (banner) or 'large' (takeover). --}}
-<form method="POST" action="{{ $alert ? route('alerts.safe', $alert) : '#' }}" data-mark-safe-form
-    @class(['flex', 'shrink-0' => $size === 'small'])>
-    @csrf
-    <button type="submit" data-mark-safe @if ($markedSafe) data-marked disabled @endif
-        @class([
-            'group/safe inline-flex w-full items-center justify-center gap-2 border-white/80 font-semibold text-white transition hover:bg-white/10 disabled:cursor-default disabled:border-transparent disabled:bg-safe disabled:hover:bg-safe',
-            'min-h-11 rounded-xl border px-4 text-sm' => $size === 'small',
-            'min-h-14 rounded-2xl border-2 px-6 text-lg' => $size === 'large',
+{{-- "I'm safe" and "I need help" for signed-in users (banner and takeover). resources/js/alerts posts them to
+     alerts.safe and alerts.help and marks every copy of the buttons; without JavaScript they are plain forms.
+     "I need help" opens a short note ("2nd floor, NEE 201, hurt my ankle") for the administrators, who get a push.
+     $size: 'small' (banner) or 'large' (takeover). $markedSafe / $askedForHelp: this user's answer for the alert. --}}
+@use('App\Http\Requests\NeedHelpRequest')
+<div data-safety-answers @class(['flex flex-col gap-2', 'shrink-0' => $size === 'small'])>
+    <form method="POST" action="{{ $alert ? route('alerts.safe', $alert) : '#' }}" data-mark-safe-form class="flex">
+        @csrf
+        <button type="submit" data-mark-safe @if ($markedSafe) data-marked disabled @endif
+            @class([
+                'group/safe inline-flex w-full items-center justify-center gap-2 border-white/80 font-semibold text-white transition hover:bg-white/10 disabled:cursor-default disabled:border-transparent disabled:bg-safe disabled:hover:bg-safe',
+                'min-h-11 rounded-xl border px-4 text-sm' => $size === 'small',
+                'min-h-14 rounded-2xl border-2 px-6 text-lg' => $size === 'large',
+            ])>
+            <svg class="hidden size-5 group-data-marked/safe:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m5 12 5 5 9-10" />
+            </svg>
+            <span class="group-data-marked/safe:hidden">I'm safe</span>
+            <span class="hidden group-data-marked/safe:inline">Marked safe</span>
+        </button>
+    </form>
+
+    <details data-need-help @if ($askedForHelp ?? false) data-requested @endif class="group/help">
+        <summary @class([
+            'inline-flex w-full cursor-pointer list-none items-center justify-center gap-2 bg-white font-semibold text-alarm transition hover:bg-red-50 [&::-webkit-details-marker]:hidden',
+            'min-h-11 rounded-xl px-4 text-sm' => $size === 'small',
+            'min-h-14 rounded-2xl px-6 text-lg' => $size === 'large',
         ])>
-        <svg class="hidden size-5 group-data-marked/safe:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
-            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="m5 12 5 5 9-10" />
-        </svg>
-        <span class="group-data-marked/safe:hidden">I'm safe</span>
-        <span class="hidden group-data-marked/safe:inline">Marked safe</span>
-    </button>
-</form>
+            <span class="group-data-requested/help:hidden">I need help</span>
+            <span class="hidden group-data-requested/help:inline">Help requested</span>
+        </summary>
+        <form method="POST" action="{{ $alert ? route('alerts.help', $alert) : '#' }}" data-need-help-form class="mt-2 grid gap-2 rounded-xl bg-white/10 p-3">
+            @csrf
+            <label class="text-sm font-semibold text-white" for="need-help-note-{{ $size }}">Where are you? What happened? (optional)</label>
+            <textarea id="need-help-note-{{ $size }}" name="note" rows="2" maxlength="{{ NeedHelpRequest::NOTE_MAX }}"
+                placeholder="2nd floor, NEE 201. I hurt my ankle."
+                class="w-full rounded-lg border-0 px-3 py-2 text-sm text-text-primary"></textarea>
+            <button type="submit" class="min-h-11 rounded-lg bg-white px-4 text-sm font-bold text-alarm transition hover:bg-red-50">Send to the administrators</button>
+            <p data-need-help-status role="status" class="text-xs text-white/90 group-data-requested/help:block">
+                @if ($askedForHelp ?? false) Help is on the way. The administrators can see your message. @endif
+            </p>
+        </form>
+    </details>
+</div>

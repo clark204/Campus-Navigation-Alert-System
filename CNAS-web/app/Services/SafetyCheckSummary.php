@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\SafetyStatus;
 use App\Enums\UserRole;
 use App\Models\Alert;
 use App\Models\College;
@@ -10,8 +11,9 @@ use App\Models\User;
 use Illuminate\Support\Collection;
 
 /**
- * Who answered "I'm safe" during an alert, for the admin (docs/alerts.md): the web alerts page and the mobile app's
- * live view. Everyone with an account except admins is counted, so they are the total; "not answered" is the rest.
+ * Who answered "I'm safe" or "I need help" during an alert, for the admin (docs/alerts.md): the web alerts page and
+ * the mobile app's live view. Everyone with an account except admins is counted, so they are the total; "not answered"
+ * is the rest.
  * By college through each account's program; accounts without a program count under "No college". Answers are
  * admin-only (RA 10173) and deleted 30 days after the alert ends (SafetyCheck::prunable).
  */
@@ -24,22 +26,26 @@ class SafetyCheckSummary
     public const PEOPLE_LIMIT = 200;
 
     /**
-     * @return array{safe: int, total: int, not_answered: int, colleges: list<array{id: string, name: string, safe: int, total: int}>}
+     * @return array{safe: int, need_help: int, total: int, not_answered: int, colleges: list<array{id: string, name: string, safe: int, need_help: int, total: int}>}
      */
     public function counts(Alert $alert): array
     {
         $totals = $this->byCollege(User::query()->where('role', '!=', UserRole::Admin)->leftJoin('programs', 'programs.code', '=', 'users.program_code'));
-        $safe = $this->byCollege(SafetyCheck::query()->where('alert_id', $alert->id)
+        $answers = fn (SafetyStatus $status) => $this->byCollege(SafetyCheck::query()->where('alert_id', $alert->id)
+            ->where('safety_checks.status', $status)
             ->join('users', 'users.id', '=', 'safety_checks.user_id')
             ->where('users.role', '!=', UserRole::Admin)
             ->leftJoin('programs', 'programs.code', '=', 'users.program_code'));
+        $safe = $answers(SafetyStatus::Safe);
+        $needHelp = $answers(SafetyStatus::NeedHelp);
 
         $names = College::query()->pluck('name', 'id');
-        $colleges = $totals->keys()->merge($safe->keys())->unique()
+        $colleges = $totals->keys()->merge($safe->keys())->merge($needHelp->keys())->unique()
             ->map(fn (string $id) => [
                 'id' => $id,
                 'name' => $id === self::NO_COLLEGE ? 'No college' : (string) ($names[$id] ?? $id),
                 'safe' => (int) ($safe[$id] ?? 0),
+                'need_help' => (int) ($needHelp[$id] ?? 0),
                 'total' => (int) ($totals[$id] ?? 0),
             ])
             // Colleges by name, "No college" last.
@@ -48,13 +54,21 @@ class SafetyCheckSummary
             ->all();
 
         $safeTotal = (int) $safe->sum();
+        $needHelpTotal = (int) $needHelp->sum();
         $total = (int) $totals->sum();
 
-        return ['safe' => $safeTotal, 'total' => $total, 'not_answered' => max(0, $total - $safeTotal), 'colleges' => $colleges];
+        return [
+            'safe' => $safeTotal,
+            'need_help' => $needHelpTotal,
+            'total' => $total,
+            'not_answered' => max(0, $total - $safeTotal - $needHelpTotal),
+            'colleges' => $colleges,
+        ];
     }
 
     /**
-     * The people who are safe, latest answer first, optionally in one college (or NO_COLLEGE).
+     * Who answered: "I need help" first (with their note), then "I'm safe", latest answer first within each,
+     * optionally in one college (or NO_COLLEGE).
      *
      * @return Collection<int, SafetyCheck>
      */
@@ -68,6 +82,7 @@ class SafetyCheckSummary
                 fn ($noCollege) => $noCollege->whereNull('program_code')->orWhereHas('program', fn ($programs) => $programs->whereNull('college_id')),
             )))
             ->when($college !== null && $college !== self::NO_COLLEGE, fn ($query) => $query->whereHas('user.program', fn ($programs) => $programs->where('college_id', $college)))
+            ->orderByRaw('case when status = ? then 0 else 1 end', [SafetyStatus::NeedHelp->value])
             ->latest('responded_at')
             ->limit(self::PEOPLE_LIMIT)
             ->get();

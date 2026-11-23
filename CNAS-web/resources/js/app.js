@@ -168,6 +168,18 @@ if (alertPicker) {
 }
 
 // Admin top bar search: suggestions while typing, "/" to jump to it (the form alone already opens the results page).
+// Admin > Alerts: the "I'm safe" panel refreshes itself every 10 s.
+const safetyLive = document.querySelector('[data-safety-live]');
+if (safetyLive) {
+    import('./alert-safety-live.js').then(({ initSafetyLive }) => initSafetyLive(safetyLive));
+}
+
+// Sidebar badges kept up to date (the admin's open concerns), every 30 s while the page is open.
+const liveBadges = [...document.querySelectorAll('[data-live-badge]')];
+if (liveBadges.length) {
+    import('./admin-badges.js').then(({ initLiveBadges }) => initLiveBadges(liveBadges));
+}
+
 const adminSearch = document.querySelector('[data-admin-search]');
 if (adminSearch) {
     import('./admin-search.js').then(({ initAdminSearch }) => initAdminSearch(adminSearch));

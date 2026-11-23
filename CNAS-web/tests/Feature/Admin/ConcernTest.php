@@ -102,7 +102,7 @@ class ConcernTest extends TestCase
         $this->actingAs($this->admin())
             ->get(route('admin.dashboard'))
             ->assertOk()
-            ->assertSeeInOrder(['Concerns', '3<span class="sr-only"> open</span>'], false);
+            ->assertSeeInOrder(['Concerns', '<span data-live-badge-count>3</span><span class="sr-only"> open</span>'], false);
     }
 
     public function test_the_admin_marks_a_concern_resolved_and_can_reopen_it(): void

@@ -78,6 +78,18 @@ const CHANNELS: Channel[] = [
     },
   },
   {
+    // Reports for admins (a new concern, "I need help"): ExpoPush::CHANNEL_ADMIN.
+    id: 'admin_reports',
+    options: {
+      name: 'Admin reports',
+      description: 'New concerns and "I need help" answers. Only on administrator accounts.',
+      importance: AndroidImportance.HIGH,
+      // No `sound`: the channel then plays the phone's default notification sound. ('default' is read as a file name
+      // and fails: "Custom sound 'default' not found".)
+      lockscreenVisibility: AndroidNotificationVisibility.PRIVATE,
+    },
+  },
+  {
     id: 'warning',
     options: {
       name: 'Warnings and updates',
@@ -119,6 +131,9 @@ async function createChannel({ id, options }: Channel): Promise<void> {
 export async function ensureChannels(): Promise<void> {
   if (Platform.OS !== 'android' || pushSupport() === 'expo-go' || pushSupport() === 'web') return;
   for (const channel of CHANNELS) await createChannel(channel);
+  // An earlier build created "admin" with a sound Android couldn't find, and a channel keeps its sound once made, so
+  // that one is removed; "admin_reports" replaces it.
+  await Notifications.deleteNotificationChannelAsync('admin').catch(() => {});
 }
 
 export type Permission = 'granted' | 'denied' | 'undetermined';
@@ -235,8 +250,11 @@ function deviceLabel(): string {
   return [Device.manufacturer, Device.modelName].filter(Boolean).join(' ').trim() || 'Phone';
 }
 
-/** The alert a notification is about, from the data the server sends ({alert_id, screen}). */
+/** The alert a notification is about, from the data the server sends ({alert_id, screen: "alert"}). Admin reports
+ * (screen "safety") also carry an alert_id but are not alert pushes (admin-reports.ts). */
 export function alertIdOf(notification: Notifications.Notification): number | null {
-  const id = Number(notification.request.content.data?.alert_id);
+  const data = notification.request.content.data;
+  if (data?.screen !== undefined && data.screen !== 'alert') return null;
+  const id = Number(data?.alert_id);
   return Number.isFinite(id) && id > 0 ? id : null;
 }

@@ -140,7 +140,7 @@ class AlertManagementController extends Controller
     }
 
     /**
-     * The "I'm safe" live view (admin only): the counts, by college, and the people who are safe (?college= one
+     * The "I'm safe" live view (admin only): the counts, by college, and who answered, "I need help" first (?college= one
      * college, or "none"). The app asks again every few seconds while it is open.
      */
     public function safety(Request $request, Alert $alert, SafetyCheckSummary $safety): JsonResponse
@@ -153,6 +153,8 @@ class AlertManagementController extends Controller
                 'name' => $check->user->full_name,
                 'role' => $check->user->role->label(),
                 'college' => $check->user->program?->college?->name,
+                'status' => $check->status->value,
+                'note' => $check->note,
                 'responded_at' => $check->responded_at->toIso8601String(),
             ])->values(),
         ])->header('Cache-Control', 'no-store');

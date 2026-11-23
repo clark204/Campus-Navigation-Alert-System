@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Enums\EmailCodePurpose;
 use App\Enums\RoomType;
+use App\Enums\SafetyStatus;
 use App\Models\Alert;
 use App\Models\EmergencyContact;
 use App\Models\Room;
@@ -101,12 +102,17 @@ class AppServiceProvider extends ServiceProvider
             $alert = Alert::current();
             $user = request()->user();
 
+            // This user's answer for the active alert: "I'm safe" or "I need help" (null when none).
+            $answer = $user && $alert?->isActive()
+                ? SafetyCheck::where('alert_id', $alert->id)->where('user_id', $user->id)->value('status')
+                : null;
+
             $view->with([
                 'alert' => $alert,
-                // "I'm safe" is only asked during an emergency (advisories and warnings have no check-in).
+                // "I'm safe" and "I need help" are only asked during an emergency (no check-in for other levels).
                 'canMarkSafe' => $user !== null && $alert?->isEmergency() === true,
-                'markedSafe' => $user && $alert?->isActive()
-                    && SafetyCheck::where('alert_id', $alert->id)->where('user_id', $user->id)->exists(),
+                'markedSafe' => $answer === SafetyStatus::Safe,
+                'askedForHelp' => $answer === SafetyStatus::NeedHelp,
             ]);
         });
     }

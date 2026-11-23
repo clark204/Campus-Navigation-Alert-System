@@ -28,14 +28,28 @@ class ConcernReceived extends Notification
      */
     public function toArray(User $notifiable): array
     {
-        $from = $this->concern->user?->full_name ?? 'A visitor';
-
         return [
             'kind' => 'concern',
             'concern_id' => $this->concern->id,
-            'title' => "New message from {$from}",
-            'body' => $this->concern->topic->shortLabel().': '.Str::limit($this->concern->message, 140),
+            'title' => self::title($this->concern),
+            'body' => self::body($this->concern),
             'url' => route('admin.concerns.show', $this->concern, absolute: false),
         ];
+    }
+
+    /**
+     * "New message from Juan Luna": the bell's title, also the admins' phone push (AdminReport).
+     */
+    public static function title(Concern $concern): string
+    {
+        return 'New message from '.($concern->user?->full_name ?? 'A visitor');
+    }
+
+    /**
+     * "Map: The library is missing…"
+     */
+    public static function body(Concern $concern): string
+    {
+        return $concern->topic->shortLabel().': '.Str::limit($concern->message, 140);
     }
 }

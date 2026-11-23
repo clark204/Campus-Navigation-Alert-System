@@ -11,13 +11,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * A user's "I'm safe" answer during an alert. Admins only; deleted RETENTION_DAYS after the alert is resolved
- * (Data Privacy Act).
+ * A user's answer during an emergency: "I'm safe" or "I need help" (with an optional note). One per user and alert;
+ * answering again replaces it. Admins only; deleted RETENTION_DAYS after the alert is resolved (Data Privacy Act).
  *
  * @property SafetyStatus $status
+ * @property string|null $note Only with "I need help".
  * @property Carbon $responded_at
  */
-#[Fillable(['alert_id', 'user_id', 'status', 'responded_at'])]
+#[Fillable(['alert_id', 'user_id', 'status', 'note', 'responded_at'])]
 class SafetyCheck extends Model
 {
     use Prunable;
@@ -38,13 +39,24 @@ class SafetyCheck extends Model
     }
 
     /**
-     * Mark the user safe for this alert. Answering again only updates the time.
+     * Mark the user safe for this alert (it replaces an earlier "I need help"). Answering again only updates the time.
      */
     public static function markSafe(Alert $alert, User $user): self
     {
         return static::updateOrCreate(
             ['alert_id' => $alert->id, 'user_id' => $user->id],
-            ['status' => SafetyStatus::Safe, 'responded_at' => now()],
+            ['status' => SafetyStatus::Safe, 'note' => null, 'responded_at' => now()],
+        );
+    }
+
+    /**
+     * "I need help", with what the person typed (where they are, what is wrong). It replaces an earlier "I'm safe".
+     */
+    public static function markNeedHelp(Alert $alert, User $user, ?string $note): self
+    {
+        return static::updateOrCreate(
+            ['alert_id' => $alert->id, 'user_id' => $user->id],
+            ['status' => SafetyStatus::NeedHelp, 'note' => filled($note) ? trim($note) : null, 'responded_at' => now()],
         );
     }
 

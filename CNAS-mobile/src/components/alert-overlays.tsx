@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAlerts } from '@/lib/alerts';
 import { useSession } from '@/lib/session';
 import { colors, fonts, radius, space } from '@/theme';
-import { DrillStamp, HazardTape, SafeButton } from './alert-parts';
+import { DrillStamp, HazardTape, NeedHelpButton, SafeButton } from './alert-parts';
 import { alertIcon, Icon } from './icon';
 
 /**
@@ -65,6 +65,7 @@ function Takeover() {
 
               <View style={styles.actions}>
                 {user && <SafeButton alert={alert} large />}
+                {user && <NeedHelpButton alert={alert} large />}
                 <Pressable
                   onPress={dismissTakeover}
                   accessibilityRole="button"

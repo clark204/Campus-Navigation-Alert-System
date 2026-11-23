@@ -27,16 +27,23 @@ function init(root) {
     let current = JSON.parse(root.querySelector('[data-alert-initial]').textContent || 'null');
     // Alerts this person marked themselves safe for (the server rendered the first one).
     const markedSafe = new Set(root.querySelector('[data-mark-safe][data-marked]') && current ? [current.id] : []);
+    // Alerts this person asked for help in (one answer per alert: the latest one counts).
+    const askedForHelp = new Set(root.querySelector('[data-need-help][data-requested]') && current ? [current.id] : []);
 
     const renderSafeButtons = () => {
+        // Only an emergency asks "I'm safe" or "I need help": the buttons are there only then.
+        root.querySelectorAll('[data-safety-answers]').forEach((answers) => (answers.hidden = !showsSafeButton(current)));
         root.querySelectorAll('form[data-mark-safe-form]').forEach((form) => {
             if (current?.status === 'active') form.action = root.dataset.safeUrl.replace('__ALERT__', current.id);
-            // Only an emergency asks "I'm safe": the button is there only then.
-            form.hidden = !showsSafeButton(current);
             const marked = current !== null && markedSafe.has(current.id);
             const button = form.querySelector('[data-mark-safe]');
             button.toggleAttribute('data-marked', marked);
             button.disabled = marked;
+        });
+        root.querySelectorAll('[data-need-help]').forEach((details) => {
+            const form = details.querySelector('form[data-need-help-form]');
+            if (current?.status === 'active') form.action = root.dataset.helpUrl.replace('__ALERT__', current.id);
+            details.toggleAttribute('data-requested', current !== null && askedForHelp.has(current.id));
         });
     };
 
@@ -138,7 +145,34 @@ function init(root) {
         }).catch(() => null);
         if (response?.ok) {
             markedSafe.add(alertId);
+            askedForHelp.delete(alertId);
             renderSafeButtons();
+        } else if (response?.status !== 409) {
+            form.submit();
+        }
+    });
+
+    // "I need help" with the note: sent in the background like "I'm safe"; it replaces an earlier "I'm safe".
+    root.addEventListener('submit', async (event) => {
+        const form = event.target.closest('form[data-need-help-form]');
+        if (!form || current?.status !== 'active') return;
+        event.preventDefault();
+        const alertId = current.id;
+        const status = form.querySelector('[data-need-help-status]');
+        const response = await fetch(form.action, {
+            method: 'POST',
+            headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() },
+            body: new FormData(form),
+        }).catch(() => null);
+        if (response?.ok) {
+            const { message } = await response.json();
+            askedForHelp.add(alertId);
+            markedSafe.delete(alertId);
+            root.querySelectorAll('[data-need-help-status]').forEach((line) => (line.textContent = message));
+            renderSafeButtons();
+        } else if (response?.status === 422) {
+            const { errors } = await response.json();
+            status.textContent = errors?.note?.[0] ?? 'Check your message and try again.';
         } else if (response?.status !== 409) {
             form.submit();
         }

@@ -195,6 +195,19 @@ class Alert extends Model
         $this->logs()->create(['user_id' => $by->id, 'action' => $action, 'detail' => $detail, 'created_at' => now()]);
     }
 
+    /**
+     * Why this alert doesn't take "I'm safe" or "I need help" answers now, or null when it does: only an active
+     * emergency asks (advisories and warnings have no check-in).
+     */
+    public function safetyCheckRefusal(): ?string
+    {
+        return match (true) {
+            ! $this->isActive() => 'This alert is over.',
+            ! $this->isEmergency() => 'Only an emergency asks whether you are safe.',
+            default => null,
+        };
+    }
+
     public function isActive(): bool
     {
         return $this->status === AlertStatus::Active;

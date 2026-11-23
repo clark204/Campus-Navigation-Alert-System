@@ -4,14 +4,17 @@ namespace App\Services;
 
 use App\Enums\AlertResolution;
 use App\Enums\AlertSeverity;
+use App\Jobs\CheckExpoPushReceipts;
 use App\Models\Alert;
+use App\Models\DevicePushToken;
 use App\Notifications\AlertPushNotification;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 /**
- * The Expo push service (docs.expo.dev/push-notifications/sending-notifications), for the mobile app's alert push.
+ * The Expo push service (docs.expo.dev/push-notifications/sending-notifications), for the mobile app's alert push and
+ * the admins' report push (AdminReport).
  * Plain HTTP through Laravel's client, no SDK. EXPO_ACCESS_TOKEN is only needed when "Enhanced push security" is on
  * in the Expo dashboard; it is sent whenever it is set.
  */
@@ -38,6 +41,12 @@ class ExpoPush
     public const CHANNEL_DRILL = 'drill';
 
     public const CHANNEL_WARNING = 'warning';
+
+    /** Reports for admins (a new concern, "I need help"): default sound, high importance. */
+    public const CHANNEL_ADMIN = 'admin_reports';
+
+    /** When Expo recommends checking receipts. */
+    public const RECEIPT_DELAY_MINUTES = 15;
 
     /**
      * The push for one phone. Same wording and severity rules as the web push (AlertPushNotification): every level
@@ -75,6 +84,66 @@ class ExpoPush
             'collapseId' => AlertPushNotification::tag($alert),
             'ttl' => self::TIME_TO_LIVE,
         ];
+    }
+
+    /**
+     * The push for one admin's phone: the report's title and body, on the "admin" channel, opening its screen.
+     *
+     * @return array<string, mixed>
+     */
+    public function reportMessage(string $to, AdminReport $report): array
+    {
+        return [
+            'to' => $to,
+            'title' => $report->title,
+            'body' => $report->body,
+            'data' => $report->data,
+            'priority' => 'high',
+            'channelId' => self::CHANNEL_ADMIN,
+            'sound' => 'default',
+            'tag' => $report->tag,
+            'collapseId' => $report->tag,
+            'ttl' => self::TIME_TO_LIVE,
+        ];
+    }
+
+    /**
+     * Send one message to each token (up to BATCH) and look after the tokens: one Expo rejects right away as
+     * DeviceNotRegistered is deleted; the others' receipts are checked RECEIPT_DELAY_MINUTES later
+     * (CheckExpoPushReceipts), as Expo recommends.
+     *
+     * @param  list<string>  $tokens
+     * @param  callable(string): array<string, mixed>  $messageFor
+     *
+     * @throws RuntimeException when Expo is busy or down, so the job tries again later.
+     */
+    public function deliver(array $tokens, callable $messageFor): void
+    {
+        if ($tokens === []) {
+            return;
+        }
+
+        $tickets = $this->send(array_map($messageFor, $tokens));
+        $gone = [];
+        $receipts = [];
+        foreach ($tickets as $index => $ticket) {
+            $token = $tokens[$index] ?? null;
+            if ($token === null) {
+                continue;
+            }
+            if (($ticket['status'] ?? null) === 'ok' && isset($ticket['id'])) {
+                $receipts[$ticket['id']] = $token;
+            } elseif (($ticket['details']['error'] ?? null) === self::DEVICE_NOT_REGISTERED) {
+                $gone[] = $token;
+            }
+        }
+
+        if ($gone !== []) {
+            DevicePushToken::whereIn('expo_token', $gone)->delete();
+        }
+        if ($receipts !== []) {
+            CheckExpoPushReceipts::dispatch($receipts)->delay(now()->addMinutes(self::RECEIPT_DELAY_MINUTES));
+        }
     }
 
     /**

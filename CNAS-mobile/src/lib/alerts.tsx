@@ -32,6 +32,10 @@ type Alerts = {
   isMarkedSafe: (alert: Alert) => boolean;
   /** POST /api/alerts/{id}/safe. Throws ApiError with the message to show (409 when the alert is over). */
   markSafe: (alert: Alert) => Promise<void>;
+  /** This user's answer for the alert: on this phone, or (my_safety_status) on the website or another phone. */
+  answerOf: (alert: Alert) => 'safe' | 'need_help' | null;
+  /** "I need help" with a note (POST /api/alerts/{id}/help). Resolves with the thank-you line; throws ApiError. */
+  askForHelp: (alert: Alert, note: string) => Promise<string>;
   /** Ask the server now instead of waiting for the next 15 s poll (a push arrived). */
   check: () => Promise<void>;
   /**
@@ -41,7 +45,8 @@ type Alerts = {
   showAlert: (alertId: number) => void;
 };
 
-type MarkedSafe = { userId: number | null; ids: number[] };
+// Answers given on this phone, with whose they are. `help`: "I need help" (older copies only have `ids`, the safe ones).
+type MarkedSafe = { userId: number | null; ids: number[]; help?: number[] };
 
 const AlertsContext = createContext<Alerts | null>(null);
 
@@ -178,7 +183,8 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
         throw error;
       }
       setMarkedSafe((current) => {
-        const next = { userId, ids: remember(current.userId === userId ? current.ids : [], target.id) };
+        const mine = current.userId === userId;
+        const next = { userId, ids: remember(mine ? current.ids : [], target.id), help: (mine ? (current.help ?? []) : []).filter((id) => id !== target.id) };
         writeJson(MARKED_SAFE_KEY, next);
         return next;
       });
@@ -186,13 +192,41 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
     [check, userId],
   );
 
-  // Answered on this phone, or (my_safety_status from the server) on the website or another phone.
-  const isMarkedSafe = useCallback(
-    (target: Alert) =>
-      userId !== null &&
-      ((markedSafe.userId === userId && markedSafe.ids.includes(target.id)) || (alert?.id === target.id && alert.my_safety_status === 'safe')),
+  const askForHelp = useCallback(
+    async (target: Alert, note: string) => {
+      let result: { message: string };
+      try {
+        result = await api<{ message: string }>(`/alerts/${target.id}/help`, { method: 'POST', body: { note: note.trim() || null } });
+      } catch (error) {
+        check();
+        throw error;
+      }
+      setMarkedSafe((current) => {
+        const mine = current.userId === userId;
+        const next = { userId, ids: (mine ? current.ids : []).filter((id) => id !== target.id), help: remember(mine ? (current.help ?? []) : [], target.id) };
+        writeJson(MARKED_SAFE_KEY, next);
+        return next;
+      });
+      return result.message;
+    },
+    [check, userId],
+  );
+
+  // The latest answer wins: on this phone first, else what the server says (website or another phone).
+  const answerOf = useCallback(
+    (target: Alert): 'safe' | 'need_help' | null => {
+      if (userId === null) return null;
+      if (markedSafe.userId === userId) {
+        if (markedSafe.help?.includes(target.id)) return 'need_help';
+        if (markedSafe.ids.includes(target.id)) return 'safe';
+      }
+      return alert?.id === target.id ? (alert.my_safety_status ?? null) : null;
+    },
     [markedSafe, userId, alert],
   );
+
+  // Answered on this phone, or (my_safety_status from the server) on the website or another phone.
+  const isMarkedSafe = useCallback((target: Alert) => answerOf(target) === 'safe', [answerOf]);
 
   const value = useMemo<Alerts>(
     () => ({
@@ -206,10 +240,12 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
       dismissBanner,
       isMarkedSafe,
       markSafe,
+      answerOf,
+      askForHelp,
       check,
       showAlert,
     }),
-    [alert, dismissed, now, takeover, popup, sounding, silence, dismissTakeover, dismissPopup, dismissBanner, isMarkedSafe, markSafe, check, showAlert],
+    [alert, dismissed, now, takeover, popup, sounding, silence, dismissTakeover, dismissPopup, dismissBanner, isMarkedSafe, markSafe, answerOf, askForHelp, check, showAlert],
   );
 
   return <AlertsContext.Provider value={value}>{children}</AlertsContext.Provider>;

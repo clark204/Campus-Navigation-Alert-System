@@ -4,6 +4,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { alertForm, alertsStore, campusDateTime, type AlertFormData, type ManagedAlert, type SafetyView } from '@/lib/admin';
 import { api, ApiError, errorMessage } from '@/lib/api';
+import { useReportArrivals } from '@/lib/admin-reports';
 import { useResource } from '@/lib/portal-data';
 import type { AlertSeverity } from '@/lib/types';
 import { colors, fonts, radius, space, type } from '@/theme';
@@ -171,11 +172,12 @@ export function EditAlertScreen() {
   );
 }
 
-const SAFETY_POLL_MS = 5000;
+/** The live view asks again this often while open, and at once when an "I need help" push arrives. */
+const SAFETY_POLL_MS = 15 * 1000;
 
 /**
- * "I'm safe" live view (admin): the counts, by college, and who is safe, newest first (GET /api/alerts/{id}/safety).
- * Refreshes every 5 seconds while open.
+ * "I'm safe" live view (admin): the counts, by college, and who answered, "I need help" first with their note
+ * (GET /api/alerts/{id}/safety). Refreshes every 15 seconds while open, and at once when a report push arrives.
  */
 export function SafetyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -183,10 +185,14 @@ export function SafetyScreen() {
   const [view, setView] = useState<SafetyView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
+  const [arrivals, setArrivals] = useState(0);
+  useReportArrivals(useCallback(() => setArrivals((n) => n + 1), []));
 
   useFocusEffect(
     useCallback(() => {
       let stopped = false;
+      // Runs again when a report push arrives (arrivals), so the new answer shows at once.
+      if (arrivals < 0) return;
       const load = () =>
         api<SafetyView>(`/alerts/${id}/safety${college ? `?college=${encodeURIComponent(college)}` : ''}`).then(
           (next) => {
@@ -203,7 +209,7 @@ export function SafetyScreen() {
         stopped = true;
         clearInterval(timer);
       };
-    }, [id, college]),
+    }, [id, college, arrivals]),
   );
 
   const share = view && view.total > 0 ? view.safe / view.total : 0;
@@ -217,6 +223,12 @@ export function SafetyScreen() {
         <ActivityIndicator color={colors.primary} />
       ) : (
         <>
+          {view.need_help > 0 && (
+            <View style={styles.helpCount} accessibilityLiveRegion="assertive">
+              <Text style={styles.helpBig}>{view.need_help}</Text>
+              <Text style={styles.helpLabel}>{view.need_help === 1 ? 'person needs help' : 'people need help'}</Text>
+            </View>
+          )}
           <View style={styles.counts} accessibilityLiveRegion="polite">
             <Text style={styles.countBig}>{view.safe}</Text>
             <View style={styles.flex}>
@@ -243,11 +255,12 @@ export function SafetyScreen() {
               <Text style={[type.small, { padding: space.md }]}>Nobody here has answered yet.</Text>
             ) : (
               view.people.map((person, index) => (
-                <View key={`${person.name}-${person.responded_at}-${index}`} style={[styles.person, index > 0 && styles.divider]}>
-                  <Icon name="check" size={18} color={colors.safe} strokeWidth={2.6} />
+                <View key={`${person.name}-${person.responded_at}-${index}`} style={[styles.person, index > 0 && styles.divider, person.status === 'need_help' && styles.personHelp]}>
+                  {person.status === 'need_help' ? <Icon name="phone" size={18} color={colors.alarm} /> : <Icon name="check" size={18} color={colors.safe} strokeWidth={2.6} />}
                   <View style={styles.flex}>
                     <Text style={styles.personName}>{person.name}</Text>
-                    <Text style={type.small}>{[person.role, person.college].filter(Boolean).join(', ')}</Text>
+                    <Text style={type.small}>{[person.status === 'need_help' ? 'Needs help' : null, person.role, person.college].filter(Boolean).join(', ')}</Text>
+                    {person.status === 'need_help' && person.note ? <Text style={styles.note}>“{person.note}”</Text> : null}
                   </View>
                   <Text style={type.small}>{campusDateTime(person.responded_at)}</Text>
                 </View>
@@ -340,6 +353,11 @@ const styles = StyleSheet.create({
   list: { backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
   person: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.md, paddingVertical: 12 },
   divider: { borderTopWidth: 1, borderTopColor: colors.border },
+  personHelp: { backgroundColor: colors.errorTint },
+  note: { fontFamily: fonts.semibold, fontSize: 15, lineHeight: 21, color: colors.alarm, marginTop: 2 },
+  helpCount: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md, borderRadius: radius.md, backgroundColor: colors.alarm },
+  helpBig: { fontFamily: fonts.bold, fontSize: 40, lineHeight: 46, color: colors.white },
+  helpLabel: { flex: 1, fontFamily: fonts.bold, fontSize: 18, color: colors.white },
   personName: { fontFamily: fonts.semibold, fontSize: 16, color: colors.text },
   history: { gap: 6, padding: space.md, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
   pill: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },

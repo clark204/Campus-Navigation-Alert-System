@@ -45,6 +45,22 @@ class AlertController extends Controller
     }
 
     /**
+     * The "I'm safe" panel alone (admin/alert-safety-panel), for resources/js/alert-safety-live.js: Admin > Alerts asks
+     * for it every 10 s, so new answers show without a reload. ?college= keeps the chosen college.
+     */
+    public function safety(Request $request, Alert $alert, SafetyCheckSummary $safety): View
+    {
+        $college = $request->filled('college') ? (string) $request->query('college') : null;
+
+        return view('admin.alert-safety-panel', [
+            'alert' => $alert,
+            'safety' => $safety->counts($alert),
+            'safePeople' => $safety->people($alert, $college),
+            'safetyCollege' => $college,
+        ]);
+    }
+
+    /**
      * The map-first send form. ?type=fire preselects a type (and its wording) for links from elsewhere.
      */
     public function create(Request $request, CampusMap $map): View|RedirectResponse

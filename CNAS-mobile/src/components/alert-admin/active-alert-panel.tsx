@@ -88,10 +88,15 @@ export function ActiveAlertPanel({ overview, area }: { overview: AlertsOverview 
           <Pressable
             onPress={() => router.push({ pathname: '/admin/safety', params: { id: String(active.id) } })}
             accessibilityRole="button"
-            accessibilityLabel={`${safety.safe} safe, ${safety.not_answered} not answered yet. See who is safe`}
+            accessibilityLabel={`${safety.need_help ? `${safety.need_help} need help, ` : ''}${safety.safe} safe, ${safety.not_answered} not answered yet. See who`}
             style={({ pressed }) => [styles.safety, pressed && { opacity: 0.85 }]}>
             <View style={styles.flex}>
               <Text style={styles.safetyLabel}>I’m safe</Text>
+              {safety.need_help > 0 && (
+                <Text style={styles.needHelp}>
+                  {safety.need_help} {safety.need_help === 1 ? 'person needs help' : 'people need help'}
+                </Text>
+              )}
               <Text style={styles.safetyNumbers}>
                 <Text style={styles.safetyBig}>{safety.safe}</Text> safe
                 <Text style={styles.safetyMuted}>{`   ${safety.not_answered} not answered yet`}</Text>
@@ -213,6 +218,7 @@ const styles = StyleSheet.create({
   placeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   place: { flex: 1, fontFamily: fonts.semibold, fontSize: 15, color: colors.alarm },
   safety: { flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.md, borderRadius: radius.md, backgroundColor: colors.safeTint },
+  needHelp: { fontFamily: fonts.bold, fontSize: 17, color: colors.alarm },
   safetyLabel: { fontFamily: fonts.semibold, fontSize: 14, color: colors.safe },
   safetyNumbers: { fontFamily: fonts.medium, fontSize: 16, color: colors.safe },
   safetyBig: { fontFamily: fonts.bold, fontSize: 28, color: colors.safe },

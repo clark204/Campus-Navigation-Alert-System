@@ -5,7 +5,7 @@ import { useAlerts } from '@/lib/alerts';
 import { useSession } from '@/lib/session';
 import type { Alert } from '@/lib/types';
 import { colors, fonts, radius, space } from '@/theme';
-import { DrillStamp, HazardTape, SafeButton } from './alert-parts';
+import { DrillStamp, HazardTape, NeedHelpButton, SafeButton } from './alert-parts';
 import { alertIcon, Icon } from './icon';
 
 // Same colors as the web banner (partials/alert-banner): red emergency, orange warning, yellow advisory, green when
@@ -67,6 +67,7 @@ export function AlertBanner() {
           )}
         </View>
         {user && showsSafeButton(alert) && <SafeButton alert={alert} />}
+        {user && showsSafeButton(alert) && <NeedHelpButton alert={alert} />}
       </View>
     </View>
   );

@@ -2,11 +2,15 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useReportArrivals } from '@/lib/admin-reports';
 import { campusDateTime, concernsStore, type ConcernConversation, type ConcernPage, type ConcernRow } from '@/lib/admin';
 import { api, ApiError, errorMessage } from '@/lib/api';
 import { colors, fonts, radius, space, type } from '@/theme';
 import { Chips } from '../alert-admin/parts';
 import { BackLink, Body, Button, Checkbox, Field, Notice, Screen, Title } from '../ui';
+
+/** How often the open list asks again (the web's badge waits 30 s). */
+const LIVE_MS = 15 * 1000;
 
 /**
  * Admin > Concerns, the app's inbox (GET /api/admin/concerns, the web's ConcernInbox): Open and Resolved, newest first,
@@ -34,11 +38,15 @@ export function ConcernsTab() {
     [],
   );
 
+  // Every 15 s while open, and at once when a report push arrives (admin-reports.ts).
   useFocusEffect(
     useCallback(() => {
       load(status);
+      const timer = setInterval(() => load(status), LIVE_MS);
+      return () => clearInterval(timer);
     }, [load, status]),
   );
+  useReportArrivals(useCallback(() => load(status), [load, status]));
 
   const rows = [...(page?.data ?? []), ...extra];
   const current = (page?.meta.current_page ?? 1) + Math.ceil(extra.length / 20);

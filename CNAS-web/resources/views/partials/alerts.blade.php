@@ -1,7 +1,7 @@
 {{-- Emergency alerts on every page, guests included (every layout includes this right after <body>):
      the banner, the full-screen alarm takeover and the one-time "Enable emergency sound" prompt.
      From the view composer in AppServiceProvider: $alert (Alert::current(): active, recent all clear, or null),
-     $canMarkSafe (signed in) and $markedSafe (already answered "I'm safe" for the active alert).
+     $canMarkSafe (signed in), $markedSafe and $askedForHelp (this user's answer for the active alert).
      resources/js/alerts polls api/alerts/active every 15 seconds and refills the data-field elements.
      $soundPrompt: false where the page has its own sound flow (the emergency map); $compactBanner: true there too.
      $hideResolved: true in the admin console: no green banner there (the alert history shows it was resolved).
@@ -11,6 +11,7 @@
 <div data-alerts
     data-poll-url="{{ route('api.alerts.active') }}"
     data-safe-url="{{ route('alerts.safe', ['alert' => '__ALERT__']) }}"
+    data-help-url="{{ route('alerts.help', ['alert' => '__ALERT__']) }}"
     data-push-url="{{ route('push-subscriptions.store') }}"
     data-alarm-sound="{{ asset('sounds/alarm.wav') }}"
     data-drill-sound="{{ asset('sounds/drill.wav') }}"

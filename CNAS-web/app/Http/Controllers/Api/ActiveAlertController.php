@@ -13,8 +13,8 @@ use Illuminate\Http\Request;
  * Polled every 15 seconds by every page (guests included) and the mobile app: the active alert, a recent
  * "All clear", or null. The alert itself comes from the cache (Alert::current) for everyone.
  *
- * With a bearer token (the signed-in app) the alert also has `my_safety_status`: "safe" when this user already
- * tapped "I'm safe" for it (on any device), else null. The token is only checked during an active emergency, the only
+ * With a bearer token (the signed-in app) the alert also has `my_safety_status`: "safe" or "need_help" when this user
+ * already answered (on any device), else null. The token is only checked during an active emergency, the only
  * time "I'm safe" is asked, so ordinary polls cost no extra queries.
  */
 class ActiveAlertController extends Controller

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ReplyConcernRequest;
 use App\Models\Concern;
 use App\Services\ConcernInbox;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -31,6 +32,14 @@ class ConcernController extends Controller
             'resolvedCount' => Concern::resolved()->count(),
             'unreadIds' => $this->inbox->unreadIds($request->user()),
         ]);
+    }
+
+    /**
+     * The open count for the sidebar badge (resources/js/admin-badges.js polls it every 30 s).
+     */
+    public function count(): JsonResponse
+    {
+        return response()->json(['count' => $this->inbox->openCount()])->header('Cache-Control', 'no-store');
     }
 
     public function show(Request $request, Concern $concern): View

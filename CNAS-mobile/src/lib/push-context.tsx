@@ -17,6 +17,7 @@ import {
   wasPrompted,
   type Permission,
 } from './push';
+import { openReport, reportArrived, reportOf } from './admin-reports';
 import { useSession } from './session';
 
 // In the foreground the app's own takeover, popup and banner show the alert (and sound the alarm), so an alert push
@@ -94,6 +95,8 @@ export function PushProvider({ children }: { children: ReactNode }) {
     if (Platform.OS === 'web') return;
     const open = (response: Notifications.NotificationResponse | null) => {
       if (!response || response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
+      const report = reportOf(response.notification);
+      if (report) openReport(report);
       const alertId = alertIdOf(response.notification);
       if (alertId !== null) showAlert(alertId);
       Notifications.clearLastNotificationResponseAsync().catch(() => {});
@@ -102,6 +105,7 @@ export function PushProvider({ children }: { children: ReactNode }) {
     Notifications.getLastNotificationResponseAsync().then(open).catch(() => {});
     const received = Notifications.addNotificationReceivedListener((notification) => {
       if (alertIdOf(notification) !== null) check();
+      if (reportOf(notification)) reportArrived();
     });
     const tapped = Notifications.addNotificationResponseReceivedListener(open);
     return () => {
