@@ -10,9 +10,9 @@ import { rerouteFrom, snapToWalkway } from '../../resources/js/navigation/positi
 import { CAUGHT_UP_METERS, createSimulator, pointsAlong, SIM_SPEED, simulatedFix } from '../../resources/js/navigation/simulate.js';
 import { findRoute, shortestPath } from '../../resources/js/navigation/router.js';
 import { createStepCounter } from '../../resources/js/navigation/steps.js';
-import { forgetTrip, recallTrip, rememberTrip } from '../../resources/js/navigation/storage.js';
+import { forgetTrip, recallTrip, rememberTrip, setVoiceDirections, voiceDirectionsOn } from '../../resources/js/navigation/storage.js';
 import { Tracker } from '../../resources/js/navigation/tracker.js';
-import { createPromptPlanner } from '../../resources/js/navigation/voice.js';
+import { createPromptPlanner, Voice } from '../../resources/js/navigation/voice.js';
 
 const load = (file) => JSON.parse(readFileSync(new URL(`../../database/data/maps/${file}`, import.meta.url)));
 const campus = {
@@ -653,6 +653,49 @@ describe('tracker', () => {
         } finally {
             delete globalThis.localStorage;
         }
+    });
+});
+
+describe('voice directions setting', () => {
+    const withStorage = (entries, run) => {
+        const store = new Map(entries);
+        globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v), removeItem: (k) => store.delete(k) };
+        globalThis.window = {}; // no speechSynthesis: Voice still tracks muted
+        try {
+            run(store);
+        } finally {
+            delete globalThis.localStorage;
+            delete globalThis.window;
+        }
+    };
+
+    test('off by default, and a browser that only had the old mute setting starts off too', () => {
+        withStorage([], () => assert.equal(voiceDirectionsOn(), false));
+        withStorage([['cnas.nav.muted', 'false']], (store) => {
+            assert.equal(voiceDirectionsOn(), false);
+            assert.equal(store.has('cnas.nav.muted'), false, 'the old key is removed');
+        });
+    });
+
+    test('each trip starts from the setting; mute only changes the trip under way; the route to safety always speaks', () => {
+        withStorage([], () => {
+            const voice = new Voice();
+            assert.equal(voice.muted, true);
+
+            setVoiceDirections(true);
+            voice.startTrip();
+            assert.equal(voice.muted, false);
+            voice.setMuted(true);
+            assert.equal(voiceDirectionsOn(), true, 'muting a trip leaves the setting on');
+            voice.startTrip();
+            assert.equal(voice.muted, false, 'the next trip speaks again');
+
+            setVoiceDirections(false);
+            voice.startTrip();
+            assert.equal(voice.muted, true);
+            voice.startTrip({ alwaysOn: true });
+            assert.equal(voice.muted, false);
+        });
     });
 });
 

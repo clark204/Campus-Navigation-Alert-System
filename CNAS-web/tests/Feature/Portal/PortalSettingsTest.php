@@ -65,6 +65,7 @@ class PortalSettingsTest extends TestCase
 
     #[TestWith(['my-account', 'Email and password'])]
     #[TestWith(['alerts', 'What each alert means'])]
+    #[TestWith(['navigation', 'Voice directions'])]
     public function test_the_tab_in_the_query_opens(string $tab, string $heading): void
     {
         $this->actingAs($this->student())

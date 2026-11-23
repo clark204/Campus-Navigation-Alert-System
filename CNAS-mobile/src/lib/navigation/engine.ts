@@ -13,6 +13,7 @@ import { createSimulator as createSimulatorJs, SIM_INTERVAL_MS as SIM_INTERVAL_M
 import { createStepCounter as createStepCounterJs, DEFAULT_STRIDE as DEFAULT_STRIDE_JS, DEFAULT_THRESHOLD as DEFAULT_THRESHOLD_JS } from '@nav/steps.js';
 import { OFF_ROUTE_METERS as OFF_ROUTE_METERS_JS, Tracker as TrackerJs } from '@nav/tracker.js';
 import { createPromptPlanner as createPromptPlannerJs } from '@nav/voice.js';
+import { VOICE_DIRECTIONS_DEFAULT as VOICE_DIRECTIONS_DEFAULT_JS } from '@nav/constants.js';
 
 import type { CampusMap, NavData } from '../campus-map';
 
@@ -166,6 +167,8 @@ export const DEFAULT_THRESHOLD: number = DEFAULT_THRESHOLD_JS;
 export const GLIDE_MS: number = GLIDE_MS_JS;
 export const SIM_INTERVAL_MS: number = SIM_INTERVAL_MS_JS;
 export const CAUGHT_UP_METERS: number = CAUGHT_UP_METERS_JS;
+/** Whether spoken directions start on before the person picks (off: the web's default too). */
+export const VOICE_DIRECTIONS_DEFAULT: boolean = VOICE_DIRECTIONS_DEFAULT_JS;
 
 const js = <T>(fn: unknown) => fn as T;
 

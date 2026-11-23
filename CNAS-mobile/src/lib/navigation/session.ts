@@ -191,6 +191,9 @@ export class NavigationSession {
     // beginNavigation: the opening line, with the first prompt that is due.
     this.planner = createPromptPlanner(plan.maneuvers);
     const opening = this.planner.next(0);
+    // Voice follows the Account tab's "Voice directions" (off by default) for each trip. The route to safety must
+    // speak whatever that setting says: when it is added, it starts the trip with alwaysOn (kind 'evacuation').
+    voice.startTrip({ alwaysOn: plan.to.kind === 'evacuation' });
     voice.say([`Starting navigation to ${plan.to.name}`, legIntro(this.legs, this.legs[0]), plan.maneuvers[0].now, opening?.text].filter(Boolean).join('. '));
 
     const facing = doorHeading(plan.route);

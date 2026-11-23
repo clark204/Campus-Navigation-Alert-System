@@ -1,5 +1,5 @@
 import { angleBetween } from './geo.js';
-import { loadSetting, saveSetting } from './storage.js';
+import { voiceDirectionsOn } from './storage.js';
 
 export const FAR_METERS = 30;
 export const NEAR_METERS = 5;
@@ -63,11 +63,12 @@ export function createPromptPlanner(maneuvers) {
     };
 }
 
-// Web Speech API wrapper with an English voice and a remembered mute toggle.
+// Web Speech API wrapper with an English voice. Whether it speaks comes from the "Voice directions" setting at the start
+// of each trip (startTrip); the mute button (setMuted) only changes the trip under way.
 export class Voice {
     constructor() {
         this.supported = 'speechSynthesis' in window;
-        this.muted = loadSetting('muted', false);
+        this.muted = !voiceDirectionsOn();
         this.voice = null;
         if (this.supported) {
             this.pickVoice();
@@ -84,9 +85,13 @@ export class Voice {
             null;
     }
 
+    // A new trip: the setting again, unless `alwaysOn` (the route to safety speaks even with voice directions off).
+    startTrip({ alwaysOn = false } = {}) {
+        this.muted = alwaysOn ? false : !voiceDirectionsOn();
+    }
+
     setMuted(muted) {
         this.muted = muted;
-        saveSetting('muted', muted);
         if (muted && this.supported) speechSynthesis.cancel();
     }
 

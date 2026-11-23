@@ -120,6 +120,32 @@ export function searchPlaces(navigation: Navigation, query: string, limit = 30):
     .map(({ entry }) => entry.result);
 }
 
+export type ResultGroup = { title: string; results: SearchResult[] };
+
+/**
+ * Every place, with nothing typed: the same list and order as the web's start and destination pickers (main.js
+ * fillPicker): Gates, then each building's rooms (buildings by name; rooms by floor, then name).
+ */
+export function browsePlaces(navigation: Navigation): ResultGroup[] {
+  const byKey = new Map(index(navigation).map((entry) => [entry.result.key, entry.result]));
+  const resultFor = (place: Place) => byKey.get(place.id)!;
+  const gates = navigation.places.filter((p) => p.kind === 'gate').map(resultFor);
+
+  const byBuilding = new Map<string | undefined, Place[]>();
+  for (const place of navigation.places) {
+    if (place.kind !== 'room') continue;
+    byBuilding.set(place.buildingId, [...(byBuilding.get(place.buildingId) ?? []), place]);
+  }
+  const buildings = [...byBuilding].map(([id, rooms]) => ({
+    title: buildingName(navigation, id) ?? 'Other rooms',
+    results: rooms
+      .sort((a, b) => a.floor - b.floor || a.name.localeCompare(b.name, undefined, { numeric: true }))
+      .map(resultFor),
+  }));
+  buildings.sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true }));
+  return [...(gates.length ? [{ title: 'Gates', results: gates }] : []), ...buildings];
+}
+
 /** A few places to start from with nothing typed: the buildings, by name. */
 export function suggestedPlaces(navigation: Navigation): SearchResult[] {
   return index(navigation)

@@ -192,6 +192,11 @@
                     <ol data-steps-list class="max-h-40 list-decimal space-y-1 overflow-y-auto py-2 pl-5"></ol>
                 </details>
 
+                {{-- Guests and admins: "Voice directions" here. Students and faculty have it in Settings → Navigation. --}}
+                @if (! auth()->user() || auth()->user()->isAdmin())
+                    @include('partials.voice-directions', ['variant' => 'compact'])
+                @endif
+
                 <button type="button" data-start-nav disabled
                     class="w-full rounded-xl bg-primary py-3.5 text-sm font-bold text-white shadow-md transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40">
                     Start

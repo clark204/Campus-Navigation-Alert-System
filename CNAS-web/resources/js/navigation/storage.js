@@ -1,3 +1,5 @@
+import { VOICE_DIRECTIONS_DEFAULT } from './constants.js';
+
 // localStorage can throw (private mode, blocked site data); settings then just aren't remembered.
 export function loadSetting(key, fallback) {
     try {
@@ -18,6 +20,23 @@ export const forgetTrip = () => saveSetting('trip', null);
 export function recallTrip(now = Date.now()) {
     const trip = loadSetting('trip', null);
     return trip && now - trip.at < TRIP_MAX_AGE_MS ? trip.to : null;
+}
+
+// "Voice directions" (cnas.nav.voice), off by default. The old remembered mute (cnas.nav.muted, voice on unless muted)
+// is removed, so browsers that used it also start with voice off.
+export function voiceDirectionsOn() {
+    removeSetting('muted');
+    return loadSetting('voice', VOICE_DIRECTIONS_DEFAULT) === true;
+}
+
+export const setVoiceDirections = (on) => saveSetting('voice', on === true);
+
+function removeSetting(key) {
+    try {
+        localStorage.removeItem(`cnas.nav.${key}`);
+    } catch {
+        // Nothing stored, or storage is blocked.
+    }
 }
 
 export function saveSetting(key, value) {

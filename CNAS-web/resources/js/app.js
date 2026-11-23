@@ -200,6 +200,18 @@ const settingsTabs = document.querySelector('[data-settings-tabs]');
 if (settingsTabs) {
     import('./settings-tabs.js').then(({ initSettingsTabs }) => initSettingsTabs(settingsTabs));
 }
+// A room's or building's QR code page (the "QR code" button on Admin > Rooms and Buildings): Print, Download PNG, doors.
+const qrSheet = document.querySelector('[data-qr-sheet]');
+if (qrSheet) {
+    import('./qr-print.js').then(({ initQrPrint }) => initQrPrint(qrSheet));
+}
+
+// Portal Settings → Navigation: "Voice directions" for this browser (/navigate wires its own copy in navigation/main.js).
+const voiceDirections = document.querySelector('[data-voice-directions]');
+if (voiceDirections) {
+    import('./voice-directions.js').then(({ initVoiceDirections }) => initVoiceDirections(voiceDirections));
+}
+
 const pushSubscribersLive = document.querySelector('[data-push-subscribers-live]');
 if (pushSubscribersLive) {
     import('./push-subscribers-live.js').then(({ initPushSubscribersLive }) => initPushSubscribersLive(pushSubscribersLive));

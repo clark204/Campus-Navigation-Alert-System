@@ -45,6 +45,7 @@ import { createPlaceStore } from './saved-places.js';
 import { CAUGHT_UP_METERS, createSimulator, SIM_INTERVAL_MS } from './simulate.js';
 import { getStride, getThreshold, setStride, setThreshold, StepDetector } from './steps.js';
 import { forgetTrip, recallTrip, rememberTrip } from './storage.js';
+import { initVoiceDirections } from '../voice-directions.js';
 import { GPS_MAX_ACCURACY, OFF_ROUTE_METERS, Tracker } from './tracker.js';
 import { createPromptPlanner, Voice } from './voice.js';
 import { ScreenWakeLock } from './wakelock.js';
@@ -775,6 +776,9 @@ async function init(root) {
 
     // ---------- Sensors & helpers shared by a navigation session
     const voice = new Voice();
+    // Guests and admins get the "Voice directions" switch here (signed-in students and faculty have it in Settings).
+    const voiceSwitch = $('[data-voice-directions]');
+    if (voiceSwitch) initVoiceDirections(voiceSwitch);
     const wakeLock = new ScreenWakeLock();
     const secure = window.isSecureContext;
     if (!secure) $('[data-insecure]').hidden = false;
@@ -1285,9 +1289,12 @@ async function init(root) {
             : Promise.resolve(Api ? 'granted' : 'unsupported');
 
     // Must run inside a tap: iOS only allows the sensor prompts and speech there.
-    function beginNavigation(intro) {
+    function beginNavigation(intro, { voiceAlwaysOn = false } = {}) {
         // These run before anything is awaited.
         const motionPermission = requestPermission(window.DeviceMotionEvent);
+        // Voice follows the "Voice directions" setting (off by default) for each new trip; mute only changes this one.
+        voice.startTrip({ alwaysOn: voiceAlwaysOn });
+        renderMute();
         // Speaking here also unlocks speech on iOS; the first due prompt joins the opening line.
         const planner = createPromptPlanner(plan.maneuvers);
         const opening = planner.next(0);
@@ -1398,12 +1405,8 @@ async function init(root) {
         plan = { from: { name: fromName }, to: { name: EVACUATION_NAME }, route: best.route, maneuvers, evacuation: true };
         drawRoute(best.route);
         note('');
-        // Voice guidance is on for the route to safety (it can be muted again).
-        if (voice.muted) {
-            voice.setMuted(false);
-            renderMute();
-        }
-        beginNavigation(best.startsInDanger ? 'You are in the danger area. Leave it now' : 'Route to safety');
+        // The route to safety always speaks, even with "Voice directions" off (it can still be muted for this trip).
+        beginNavigation(best.startsInDanger ? 'You are in the danger area. Leave it now' : 'Route to safety', { voiceAlwaysOn: true });
     }
 
     $('[data-evac-go]').addEventListener('click', evacuate);

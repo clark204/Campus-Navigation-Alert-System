@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import type { Navigation } from '@/lib/navigation/engine';
-import { searchPlaces, suggestedPlaces, type SearchResult } from '@/lib/navigation/places';
+import { browsePlaces, searchPlaces, suggestedPlaces, type SearchResult } from '@/lib/navigation/places';
 import { formatDistance, formatMinutes, type Plan } from '@/lib/navigation/session';
 import { colors, fonts, radius, space } from '@/theme';
 import { Icon } from '../icon';
@@ -99,7 +99,26 @@ export function SearchResults({
   onPick: (result: SearchResult) => void;
   onPickHere?: () => void;
 }) {
-  const results = query.trim() ? searchPlaces(navigation, query) : suggestedPlaces(navigation);
+  // A trip starts at a gate or a room (a building has no single spot), so the start list leaves buildings out.
+  const startable = (result: SearchResult) => !here || result.destination.place !== undefined;
+  const typed = query.trim() !== '';
+  const results = typed ? searchPlaces(navigation, query).filter(startable) : [];
+  const groups = typed ? [] : browsePlaces(navigation);
+  const row = (result: SearchResult) => (
+    <Pressable key={result.key} onPress={() => onPick(result)} accessibilityRole="button" style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
+      <View style={styles.rowIcon}>
+        <Icon name={result.icon} size={20} color={colors.primary} strokeWidth={2.2} />
+      </View>
+      <View style={styles.rowText}>
+        <Text style={styles.rowTitle} numberOfLines={1}>
+          {result.title}
+        </Text>
+        <Text style={styles.rowDetail} numberOfLines={1}>
+          {result.detail}
+        </Text>
+      </View>
+    </Pressable>
+  );
   return (
     <ScrollView style={styles.results} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.resultsContent}>
       {here && onPickHere && (
@@ -113,23 +132,16 @@ export function SearchResults({
           </View>
         </Pressable>
       )}
-      {!query.trim() && <Text style={styles.groupLabel}>Buildings</Text>}
-      {results.map((result) => (
-        <Pressable key={result.key} onPress={() => onPick(result)} accessibilityRole="button" style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
-          <View style={styles.rowIcon}>
-            <Icon name={result.icon} size={20} color={colors.primary} strokeWidth={2.2} />
-          </View>
-          <View style={styles.rowText}>
-            <Text style={styles.rowTitle} numberOfLines={1}>
-              {result.title}
-            </Text>
-            <Text style={styles.rowDetail} numberOfLines={1}>
-              {result.detail}
-            </Text>
-          </View>
-        </Pressable>
+      {groups.map((group) => (
+        <View key={group.title}>
+          <Text style={styles.groupLabel} accessibilityRole="header">
+            {group.title}
+          </Text>
+          {group.results.map(row)}
+        </View>
       ))}
-      {query.trim() !== '' && results.length === 0 && (
+      {results.map(row)}
+      {typed && results.length === 0 && (
         <View style={styles.none}>
           <Text style={styles.noneTitle}>No place called “{query.trim()}”</Text>
           <Text style={styles.noneText}>Try a room name like the one on its door, a building, or a word like “CR”, “lab” or “gate”.</Text>
@@ -139,16 +151,21 @@ export function SearchResults({
   );
 }
 
-/** Buildings to tap with nothing searched yet, so the first step is one tap. */
-export function SuggestionCard({ navigation, onPick, bottomInset }: { navigation: Navigation; onPick: (result: SearchResult) => void; bottomInset: number }) {
+/** Buildings to tap with nothing searched yet: one tap lists that building's rooms (and the building itself). */
+export function SuggestionCard({ navigation, onBrowse, bottomInset }: { navigation: Navigation; onBrowse: (building: string) => void; bottomInset: number }) {
   const suggestions = suggestedPlaces(navigation);
   return (
     <View style={[styles.sheet, { paddingBottom: bottomInset + space.md }]}>
       <Text style={styles.sheetTitle}>Where do you want to go?</Text>
-      <Text style={styles.sheetText}>Search a room or building, or tap one below.</Text>
+      <Text style={styles.sheetText}>Search a room or building, or tap a building to see its rooms.</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestions}>
         {suggestions.map((result) => (
-          <Pressable key={result.key} onPress={() => onPick(result)} accessibilityRole="button" style={({ pressed }) => [styles.suggestion, pressed && styles.pressed]}>
+          <Pressable
+            key={result.key}
+            onPress={() => onBrowse(result.title)}
+            accessibilityRole="button"
+            accessibilityHint="Shows the rooms in this building"
+            style={({ pressed }) => [styles.suggestion, pressed && styles.pressed]}>
             <Icon name="home" size={18} color={colors.primary} strokeWidth={2.2} />
             <Text style={styles.suggestionText}>{result.title}</Text>
           </Pressable>
@@ -167,10 +184,12 @@ type RouteCardProps = {
   bottomInset: number;
   onStart: () => void;
   onClose: () => void;
+  /** Signed in (portal) with a room as destination: the star that saves it (main.js renderSave). */
+  save?: { saved: boolean; message: string | null; onToggle: () => void } | null;
 };
 
 /** The route before Start: how far, how long, the steps (main.js updatePlan). */
-export function RouteCard({ title, detail, plan, error, note, bottomInset, onStart, onClose }: RouteCardProps) {
+export function RouteCard({ title, detail, plan, error, note, bottomInset, onStart, onClose, save }: RouteCardProps) {
   const [showSteps, setShowSteps] = useState(false);
   const stairs = plan ? plan.maneuvers.some((m) => m.type === 'stairs') : false;
   return (
@@ -182,6 +201,18 @@ export function RouteCard({ title, detail, plan, error, note, bottomInset, onSta
           </Text>
           {detail ? <Text style={styles.sheetText}>{detail}</Text> : null}
         </View>
+        {save && (
+          <Pressable
+            onPress={save.onToggle}
+            accessibilityRole="button"
+            accessibilityLabel={save.saved ? `Remove ${title} from saved places` : `Save ${title}`}
+            accessibilityState={{ selected: save.saved }}
+            hitSlop={6}
+            style={({ pressed }) => [styles.save, save.saved && styles.saveOn, pressed && styles.pressed]}>
+            <Icon name="star" size={20} color={save.saved ? colors.primaryHover : colors.primary} fill={save.saved ? colors.secondary : 'none'} strokeWidth={2.2} />
+            <Text style={styles.saveText}>{save.message ?? (save.saved ? 'Saved' : 'Save')}</Text>
+          </Pressable>
+        )}
         <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Choose another destination" hitSlop={8} style={styles.closeCard}>
           <Icon name="close" size={22} color={colors.muted} strokeWidth={2.4} />
         </Pressable>
@@ -238,6 +269,9 @@ const shadow = {
 };
 
 const styles = StyleSheet.create({
+  save: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1.5, borderColor: colors.border, alignSelf: 'flex-start' },
+  saveOn: { borderColor: colors.secondary, backgroundColor: '#FBF3DC' },
+  saveText: { fontFamily: fonts.semibold, fontSize: 14, color: colors.primary },
   field: { flex: 1, minHeight: 52, borderRadius: 26, backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingLeft: space.md, paddingRight: space.sm, ...shadow },
   input: { flex: 1, fontFamily: fonts.medium, fontSize: 18, color: colors.text, paddingVertical: 12 },
   clear: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },

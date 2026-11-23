@@ -10,6 +10,8 @@ Read this before touching /navigate, routing, voice, tracking, or the 360 photos
 - Directions use names students know (`landmark_name`), never codes like "Building 04" or "NEE Stair A".
 - If the user walks a different way, the route is redrawn.
 - Voice uses the Web Speech API. On iPhone it must be unlocked by a tap (Start button).
+- Voice directions are OFF by default (`constants.js` `VOICE_DIRECTIONS_DEFAULT`, shared with the app). The setting is `cnas.nav.voice` in localStorage (`storage.js` `voiceDirectionsOn` / `setVoiceDirections`; the old `cnas.nav.muted` key is removed so every browser starts off). Switch: `partials/voice-directions` + `resources/js/voice-directions.js`, in portal Settings → Navigation for students and faculty, and in the /navigate planning panel for guests and admins.
+- Each trip starts from the setting (`Voice.startTrip`, called in `beginNavigation`); the mute button only changes the trip under way. The route to safety passes `voiceAlwaysOn`, so it always speaks.
 - No WebXR AR (test phone is not ARCore-supported). Street View-style 360 photos are used instead.
 
 ## Where the code is
@@ -30,6 +32,19 @@ Packages: MapLibre GL and single Turf modules (along, bearing, distance, length,
 - The app imports these modules straight from this folder (its `metro.config.js`, alias `@nav/`), so it gives the same routes and directions. Shared: `constants`, `evacuation`, `geo`, `gps`, `graph`, `instructions`, `legs`, `motion`, `position`, `route-panoramas`, `router`, `simulate`, `steps`, `storage`, `tracker`, `voice`. Only `main.js` (and the other page scripts) may touch the DOM or MapLibre.
 - Those modules import only each other and single Turf modules. `METERS_PER_FLOOR` lives in `navigation/constants.js` for that reason (`map-style.js` re-exports it). `tests/js/navigation-shared.test.js` fails when a shared module imports anything else or needs a DOM to load.
 - The app ports `main.js`'s session (texts, reroute, manual mode, legs) to `CNAS-mobile/src/lib/navigation/session.ts`. Change both when the behaviour changes.
+
+## QR codes (the "QR code" button on Admin > Rooms and Buildings)
+- Decision (Clark, 2026-11-23): no separate QR page. Each row on Rooms and Buildings has a "QR code" button beside Edit that opens that place's card, with Print and Download PNG. Keep it that simple.
+- A code holds `<APP_URL>/navigate?from=<place id>`. /navigate (`main.js` `preset(startSelect, params.get('from'))`) and the app's Scan QR (`CNAS-mobile/src/lib/navigation/places.ts` `readQr`) both start from that place. A phone camera opens the link in the browser.
+- Place ids are the walk graph's (`graph.js` `listPlaces`): a room's code is its door. A building has no place of its own. Like the router, which goes to a building's nearest ground-floor door, a building's code starts at one of its ground-floor rooms' doors. With several doors the page asks "Which door will you post it at?" and preselects the main entrance: the door `findRoute` reaches first from the Entrance Gate, the default start (`resources/js/main-entrance.js`, same shared modules).
+- No code yet, explained on the page instead of a card: an upstairs room whose building has no stairs reaching that floor (`addRooms` leaves it unreachable), and a building with no ground-floor room. Admins never type codes.
+- Gates have no list to hang a button on, so they have no code; /navigate already starts at the Entrance Gate.
+- The link is built from `config('app.url')`, not the request, so a code printed from a laptop on localhost still opens the real site. The page warns when APP_URL isn't a public https address.
+- Server: `App\Services\PlaceQrCodes` (`forRoom`, `entrances`, URL, SVG), `PlaceQrCode`, `Admin\QrCodeController` (routes `admin.rooms.qr`, `admin.buildings.qr`). View `admin/qr-code-page` (standalone, prints only the card). JS `resources/js/qr-print.js` (Print, door picker, "Download PNG" drawn on a canvas from the card's SVG and logos).
+- QR package: `chillerlan/php-qrcode` (v5). Maintained, MIT, writes SVG itself, one small dependency of its own. Error correction M. No external QR service.
+- The card is 95 × 90 mm with a dashed cut line, logos `public/logo/nav-logo.svg` and `public/logo/tcc-seal.png` (copied from the app). Print at 100%.
+- Gotcha: `composer install` couldn't write its download zip into `vendor/composer` on Clark's PC ("Permission denied"); `composer install --prefer-source` worked.
+- Tests: `tests/Feature/Admin/QrCodeTest.php`, `tests/js/qr-code.test.js`.
 
 ## Panoramas (360 photos)
 - Shot about every 3 m along walkways, named p1, p2, ... Admin places each one on the map.

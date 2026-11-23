@@ -174,6 +174,8 @@ const METERS_PER_DEGREE = 111320;
 export type Projection = {
   /** [longitude, latitude] → [x, y] in meters, y pointing down (SVG). */
   project: (position: Position) => [number, number];
+  /** [x, y] in meters → [longitude, latitude] (a tap on the map). */
+  unproject: (point: [number, number]) => Position;
   /** The bounding box of the campus, in projected meters. */
   box: { minX: number; minY: number; maxX: number; maxY: number };
   /** The furthest campus point from the box's middle, in meters (fits the campus in a circle). */
@@ -191,12 +193,13 @@ export function projectionFor(map: CampusMap): Projection | null {
   const lat0 = (Math.min(...lats) + Math.max(...lats)) / 2;
   const cos = Math.cos((lat0 * Math.PI) / 180);
   const project = ([lon, lat]: Position): [number, number] => [(lon - lon0) * cos * METERS_PER_DEGREE, (lat0 - lat) * METERS_PER_DEGREE];
+  const unproject = ([x, y]: [number, number]): Position => [x / (cos * METERS_PER_DEGREE) + lon0, lat0 - y / METERS_PER_DEGREE];
 
   const points = outline.map(project);
   const xs = points.map((p) => p[0]);
   const ys = points.map((p) => p[1]);
   const radius = Math.max(...points.map(([x, y]) => Math.hypot(x, y)), 1);
-  return { project, box: { minX: Math.min(...xs), minY: Math.min(...ys), maxX: Math.max(...xs), maxY: Math.max(...ys) }, radius };
+  return { project, unproject, box: { minX: Math.min(...xs), minY: Math.min(...ys), maxX: Math.max(...xs), maxY: Math.max(...ys) }, radius };
 }
 
 export const svgPoints = (projection: Projection, ring: Position[]) =>

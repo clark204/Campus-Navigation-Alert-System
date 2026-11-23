@@ -145,7 +145,7 @@ export default function ForgotPassword() {
           />
           <Button title="Continue" loadingTitle="Checking…" loading={busy} onPress={checkCode} />
           <ResendButton key={resend.key} waitSeconds={resend.wait} busy={sending} onPress={() => sendCode(true)} />
-          <Button title="Use a different email or ID" variant="link" onPress={() => setStep('login')} />
+          <Button title="Use a different email or ID" variant="link" center onPress={() => setStep('login')} />
           <NoEmailHelp />
         </>
       )}

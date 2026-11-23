@@ -33,11 +33,11 @@
     <div class="mx-auto flex max-w-3xl flex-col gap-6">
         <div>
             <h1 class="text-2xl font-semibold tracking-tight text-primary sm:text-3xl">Settings</h1>
-            <p class="mt-1 text-sm text-text-muted">Your profile, how you sign in, and emergency alerts on this device.</p>
+            <p class="mt-1 text-sm text-text-muted">Your profile, how you sign in, and emergency alerts and directions on this device.</p>
         </div>
 
         {{-- Plain links without JavaScript (?tab= opens the tab); with it, tabs switch in place (settings-tabs.js). --}}
-        <div role="tablist" aria-label="Settings" data-settings-tabs class="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
+        <div role="tablist" aria-label="Settings" data-settings-tabs class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
             @foreach ($tabs as $id => $name)
                 <a id="tab-{{ $id }}" role="tab" href="{{ route("{$portal}.settings", ['tab' => $id]) }}" aria-controls="{{ $id }}"
                     aria-selected="{{ $id === $activeTab ? 'true' : 'false' }}"
@@ -143,6 +143,16 @@
                         @endforeach
                     </ul>
                 </div>
+            </div>
+        </section>
+
+        {{-- 4. Navigation: spoken directions on this browser (localStorage, partials/voice-directions) --}}
+        <section id="navigation" role="tabpanel" aria-labelledby="tab-navigation" @if ($activeTab !== 'navigation') hidden @endif>
+            <div class="flex flex-col gap-6">
+                @include('partials.voice-directions', ['variant' => 'card'])
+                <noscript>
+                    <p class="rounded-2xl border border-border bg-surface p-5 text-sm text-text-muted">Turn on JavaScript to use voice directions on this device.</p>
+                </noscript>
             </div>
         </section>
     </div>

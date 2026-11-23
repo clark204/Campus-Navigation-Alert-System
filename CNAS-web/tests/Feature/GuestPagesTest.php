@@ -71,6 +71,14 @@ class GuestPagesTest extends TestCase
         $this->actingAs(User::factory()->create(['role' => UserRole::Student]))->get(route('navigate'))->assertOk();
     }
 
+    public function test_the_voice_directions_switch_is_on_navigate_for_guests_and_admins_only(): void
+    {
+        $this->get(route('navigate'))->assertSee('data-voice-directions', false);
+        $this->actingAs(User::factory()->create(['role' => UserRole::Admin]))->get(route('navigate'))->assertSee('data-voice-directions', false);
+        // Students and faculty have it in Settings → Navigation.
+        $this->actingAs(User::factory()->create(['role' => UserRole::Student]))->get(route('navigate'))->assertDontSee('data-voice-directions', false);
+    }
+
     #[DataProvider('guestPages')]
     public function test_guest_pages_are_never_cached(string $route): void
     {

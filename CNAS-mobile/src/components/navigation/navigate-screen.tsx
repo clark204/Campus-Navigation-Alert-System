@@ -9,6 +9,9 @@ import { watchLocation, type LocationStatus } from '@/lib/navigation/location';
 import { placeDestination, placeDetail, titleCase, type Destination, type SearchResult } from '@/lib/navigation/places';
 import { checkHere, hereStart, NavigationSession, placeStart, planRoute, type Plan, type Start } from '@/lib/navigation/session';
 import { voice } from '@/lib/navigation/voice';
+import { placesStore, recordRecentPlace, toggleSavedPlace } from '@/lib/portal-data';
+import { isAdmin } from '@/lib/roles';
+import { useSession } from '@/lib/session';
 import { colors, fonts, space, type } from '@/theme';
 import { Icon } from '../icon';
 import { useMapFrame, ZoomableMap, type CameraTarget } from '../zoomable-map';
@@ -89,6 +92,15 @@ function Navigator({ map, navigation, width, height }: NavigatorProps) {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ from?: string; to?: string }>();
   const frame = useMapFrame(map, width, height, insets.top + PLAN_TOP, PLAN_BOTTOM);
+  const { user } = useSession();
+  // Saved and recent places are the portal's (students, faculty and staff), not the admin's or a guest's.
+  const canSave = user !== null && !isAdmin(user);
+  const places = useSyncExternalStore(placesStore.subscribe, placesStore.get);
+  const savedCodes = useMemo(() => new Set((places.data?.saved ?? []).map((place) => place.code)), [places.data]);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  useEffect(() => {
+    if (canSave) placesStore.load();
+  }, [canSave]);
 
   // ---------- Planning. A plan is made when the start or destination is chosen, and once more when My location
   // becomes usable while the route starts at the gate. Not on every fix: a plan from My location splits a walkway
@@ -226,6 +238,8 @@ function Navigator({ map, navigation, width, height }: NavigatorProps) {
       if (fresh && 'plan' in fresh) plan = fresh.plan;
     }
     latest.current.waitingForHere = false;
+    // Start puts a room at the top of Recent (best effort, never in the way).
+    if (canSave && destination.place?.kind === 'room') recordRecentPlace(destination.place.id);
     const next = new NavigationSession(navigation, plan, location);
     sessionRef.current = next;
     setSession(next);
@@ -305,6 +319,22 @@ function Navigator({ map, navigation, width, height }: NavigatorProps) {
         : here.reason === 'far'
           ? 'You don’t seem to be on campus'
           : 'Finding your location…';
+
+  // ---------- Saved places (signed in to the portal, a room as destination): the star, like the web's Save.
+  const saveRoom = canSave && destination?.place?.kind === 'room' ? destination.place : null;
+  const saveButton = saveRoom
+    ? {
+        saved: savedCodes.has(saveRoom.id),
+        message: saveMessage,
+        onToggle: () => {
+          setSaveMessage(null);
+          toggleSavedPlace({ code: saveRoom.id, name: saveRoom.name, location: placeDetail(navigation, saveRoom) }).catch(() => {
+            setSaveMessage(savedCodes.has(saveRoom.id) ? 'Couldn’t remove' : 'Couldn’t save');
+            setTimeout(() => setSaveMessage(null), 3000);
+          });
+        },
+      }
+    : null;
 
   return (
     <>
@@ -439,9 +469,17 @@ function Navigator({ map, navigation, width, height }: NavigatorProps) {
                   bottomInset={insets.bottom}
                   onStart={begin}
                   onClose={() => choose(startChoice, null)}
+                  save={saveButton}
                 />
               ) : (
-                <SuggestionCard navigation={navigation} bottomInset={insets.bottom} onPick={pick} />
+                <SuggestionCard
+                  navigation={navigation}
+                  bottomInset={insets.bottom}
+                  onBrowse={(building) => {
+                    setSearching('to');
+                    setQuery(building);
+                  }}
+                />
               )}
             </View>
           )}

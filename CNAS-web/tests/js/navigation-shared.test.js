@@ -11,6 +11,7 @@ export const SHARED_MODULES = [
     'geo',
     'gps',
     'graph',
+    'incident',
     'instructions',
     'legs',
     'motion',

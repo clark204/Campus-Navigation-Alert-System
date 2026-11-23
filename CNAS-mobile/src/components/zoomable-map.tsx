@@ -76,10 +76,12 @@ type Props = {
   walkwayOpacity?: number;
   /** The part of the screen the camera centers in (between the cards); the frame's by default. */
   viewport?: { top: number; bottom: number };
+  /** A single tap on the map, as [longitude, latitude] (the alert form's incident pin). Waits for a double tap to fail. */
+  onTap?: (position: Position) => void;
 };
 
 /** The campus map: pinch to zoom, drag to pan, double-tap to zoom in or back out, building names. */
-export function ZoomableMap({ map, frame, overlay, children, camera, onUserMove, walkwayOpacity = 1, viewport }: Props) {
+export function ZoomableMap({ map, frame, overlay, children, camera, onUserMove, walkwayOpacity = 1, viewport, onTap }: Props) {
   const { banner } = useAlerts();
   const { width, height, projection, viewBox } = frame;
   const scale = useSharedValue(1);
@@ -145,7 +147,18 @@ export function ZoomableMap({ map, frame, overlay, children, camera, onUserMove,
     },
   });
 
-  const gesture = useSimultaneousGestures(pinch, pan, doubleTap);
+  // A tap at zoom-1 screen point (x, y): back to projected meters, then to longitude and latitude.
+  const tapAt = (x: number, y: number) => onTap?.(projection.unproject([x / frame.k + viewBox[0], y / frame.k + viewBox[1]]));
+  const singleTap = useTapGesture({
+    numberOfTaps: 1,
+    enabled: onTap !== undefined,
+    requireToFail: doubleTap,
+    onActivate: (event) => {
+      scheduleOnRN(tapAt, (event.x - half.x - tx.get()) / scale.get() + half.x, (event.y - half.y - ty.get()) / scale.get() + half.y);
+    },
+  });
+
+  const gesture = useSimultaneousGestures(pinch, pan, doubleTap, singleTap);
 
   // The camera: a point of the map (at zoom 1) goes to the middle of the free area, at a zoom.
   const cameraKey = camera?.key;

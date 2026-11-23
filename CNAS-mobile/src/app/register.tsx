@@ -144,7 +144,7 @@ function CorStep({ restartMessage, onUploaded }: { restartMessage: string | null
       </View>
 
       <Button title="Upload and continue" loadingTitle="Checking your COR…" loading={busy} onPress={upload} />
-      <Button title="I already have an account" variant="link" onPress={() => router.replace('/sign-in')} />
+      <Button title="I already have an account" variant="link" center onPress={() => router.replace('/sign-in')} />
     </Screen>
   );
 }

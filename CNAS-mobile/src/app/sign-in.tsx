@@ -68,7 +68,7 @@ export default function SignIn() {
       <Button title="Forgot password?" variant="link" onPress={() => router.push({ pathname: '/forgot-password', params: { login } })} />
 
       <Button title="Sign in" loadingTitle="Signing in…" loading={busy} onPress={submit} />
-      <Button title="Create an account" variant="link" onPress={() => router.replace('/register')} />
+      <Button title="Create an account" variant="link" center onPress={() => router.replace('/register')} />
     </Screen>
   );
 }

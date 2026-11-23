@@ -17,6 +17,7 @@ class SettingsController extends Controller
         'profile' => 'Profile',
         'my-account' => 'Account',
         'alerts' => 'Alerts',
+        'navigation' => 'Navigation',
     ];
 
     public function __invoke(Request $request): View

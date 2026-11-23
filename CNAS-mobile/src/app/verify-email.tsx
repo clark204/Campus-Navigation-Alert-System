@@ -85,9 +85,9 @@ export default function VerifyEmail() {
       <Button title="Verify email" loadingTitle="Checking…" loading={busy} onPress={verify} />
       <ResendButton key={resend.key} waitSeconds={resend.wait} busy={sending} onPress={sendAgain} />
 
-      <Button title="Skip for now" variant="link" onPress={() => setVerifyLater(true)} />
+      <Button title="Skip for now" variant="link" center onPress={() => setVerifyLater(true)} />
       <Body muted>Emergency alerts work while you wait. Wrong email address? Sign in on the CNAS website to fix it.</Body>
-      <Button title="Not your account? Sign out" variant="link" onPress={signOut} />
+      <Button title="Not your account? Sign out" variant="link" center onPress={signOut} />
     </Screen>
   );
 }
