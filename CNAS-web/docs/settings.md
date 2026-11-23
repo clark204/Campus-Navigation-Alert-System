@@ -32,7 +32,7 @@ Read this before touching /admin/settings, the footer contact details, emergency
 - The page includes `partials.push-alerts` so the admin can turn alerts on or off for this browser.
 
 ## Where the code is
-- Controllers: `Admin\SettingsController` (page), `ContactDetailsController`, `EmergencyContactController`, `SystemStatusController`, `Api\EmergencyContactController`, and the shared `AccountController` for My account (the portal settings use it too, see portal.md)
+- Controllers: `Admin\SettingsController` (page), `ContactDetailsController`, `EmergencyContactController`, `SystemStatusController`, `Api\EmergencyContactController`, and the shared `AccountController` for My account (the portal settings use it too, see portal.md; its rules are in `App\Services\AccountChanges`, which the app's API uses too)
 - Requests: `Admin\UpdateContactDetailsRequest`, `SaveEmergencyContactRequest`, `UpdateEmergencyContactVisibilityRequest`, `Account\UpdateEmailRequest`, `Account\UpdatePasswordRequest`
 - Views: `admin/settings-page`, `admin/settings-message`, `admin/status-badge`, `admin/emergency-contact-fields`, `partials/contact-details`, `portal/dashboard-page`
 - JS: `resources/js/settings-tabs.js`, `resources/js/push-subscribers-live.js` (loaded from `app.js` only on this page)

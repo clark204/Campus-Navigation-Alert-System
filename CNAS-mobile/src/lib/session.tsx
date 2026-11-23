@@ -2,6 +2,8 @@ import * as Device from 'expo-device';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { api, ApiError, setAuthToken, setUnauthorizedHandler } from './api';
+import { clearAdminData } from './admin';
+import { clearPortalData } from './portal-data';
 import { storedPushToken } from './push';
 import { clearToken, getToken, readJson, removeKeys, saveToken, writeJson } from './storage';
 import type { User } from './types';
@@ -50,6 +52,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setVerifyLater(false);
     await clearToken();
     await removeKeys([USER_CACHE_KEY, MARKED_SAFE_KEY]);
+    await clearPortalData();
+    await clearAdminData();
   }, []);
 
   // A 401 from any call means the token expired or was revoked (password reset, admin): back to Welcome.

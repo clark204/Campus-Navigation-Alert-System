@@ -11,11 +11,13 @@ use App\Services\Cor\ParsedCor;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
- * A student's class schedule: reading it (current term only, rooms matched to the map), working out the next
- * class, and filling it from a COR.
+ * A student's class schedule (or a teacher's classes): reading it (current term only, rooms matched to the map),
+ * working out the next class, adding and editing one class, and filling it from a COR. Shared by the web portal and
+ * the mobile app's API.
  */
 class ClassSchedules
 {
@@ -25,6 +27,8 @@ class ClassSchedules
     public const WRONG_STUDENT_MESSAGE = 'This COR belongs to another student. Please upload your own COR.';
 
     public const NO_TERM_MESSAGE = 'There is no current term yet, so a schedule cannot be imported. Please try again later.';
+
+    public const NO_TERM_ADD_MESSAGE = 'There is no current term yet, so classes cannot be added.';
 
     public function __construct(private RoomMatcher $rooms) {}
 
@@ -97,6 +101,68 @@ class ClassSchedules
         }
 
         return null;
+    }
+
+    /**
+     * Add a class by hand to the current term (SaveClassScheduleRequest::classAttributes). Null when there is no
+     * current term.
+     *
+     * @param  array{subject: string, section: ?string, day: string, starts_at: string, ends_at: string, room_text: string}  $attributes
+     */
+    public function add(User $user, array $attributes): ?ClassSchedule
+    {
+        $term = AcademicTerm::current();
+
+        if ($term === null) {
+            return null;
+        }
+
+        return $user->classSchedules()->create([
+            ...$attributes,
+            'academic_term_id' => $term->id,
+            'source' => ScheduleSource::Manual,
+        ]);
+    }
+
+    /**
+     * Save an edit. A COR row the student really changes becomes a manual row, so a later import keeps the change;
+     * saving it unchanged keeps the COR text and source.
+     *
+     * @param  array{subject: string, section: ?string, day: string, starts_at: string, ends_at: string, room_text: string}  $attributes
+     */
+    public function update(ClassSchedule $class, array $attributes): void
+    {
+        // The same room picked again keeps its text as written ("CompLab1" from a COR is the room r6): not a change.
+        if ($this->rooms->match($attributes['room_text'])?->is($this->rooms->match($class->room_text))) {
+            $attributes['room_text'] = $class->room_text;
+        }
+
+        // Compared as shown, not with isDirty(): the database's "16:00:00" is the form's "16:00".
+        $changed = collect($attributes)->contains(function (?string $value, string $field) use ($class): bool {
+            $current = $class->getAttribute($field);
+
+            return (string) ($current instanceof Weekday ? $current->value : $current) !== (string) $value;
+        });
+
+        if ($changed) {
+            $class->fill([...$attributes, 'source' => ScheduleSource::Manual])->save();
+        }
+    }
+
+    /**
+     * "15 classes imported from your COR. 2 classes you changed by hand were kept."
+     *
+     * @param  array{imported: int, kept: int}  $result
+     */
+    public static function importMessage(array $result): string
+    {
+        $message = $result['imported'].' '.Str::plural('class', $result['imported']).' imported from your COR.';
+
+        if ($result['kept'] > 0) {
+            $message .= ' '.$result['kept'].' '.Str::plural('class', $result['kept']).' you changed by hand '.($result['kept'] === 1 ? 'was' : 'were').' kept.';
+        }
+
+        return $message;
     }
 
     /**

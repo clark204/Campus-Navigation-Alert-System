@@ -24,9 +24,10 @@ class UserResource extends JsonResource
     /**
      * email_verified: false until the user enters the emailed code (the app then shows its verify screen). Always
      * true for the admin, who never has to verify. must_change_password: true after the admin set a temporary
-     * password; the website asks for a new one before anything else (the app can send the user there).
+     * password; the website asks for a new one before anything else (the app has its own Change password). can_send_alerts:
+     * the admin, or faculty and staff the admin trusts (the app shows Send an alert).
      *
-     * @return array{id: int, school_id: ?string, first_name: ?string, middle_name: ?string, last_name: ?string, email: string, email_verified: bool, must_change_password: bool, role: string, college: array{id: string, name: string}|null, program: array{code: string, name: string}|null}
+     * @return array{id: int, school_id: ?string, first_name: ?string, middle_name: ?string, last_name: ?string, email: string, email_verified: bool, must_change_password: bool, role: string, can_send_alerts: bool, college: array{id: string, name: string}|null, program: array{code: string, name: string}|null}
      */
     public function toArray(Request $request): array
     {
@@ -40,6 +41,7 @@ class UserResource extends JsonResource
             'email_verified' => ! $this->needsEmailVerification(),
             'must_change_password' => (bool) $this->must_change_password,
             'role' => $this->role->value,
+            'can_send_alerts' => $this->canSendAlerts(),
             'college' => $this->college === null ? null : [
                 'id' => $this->college->id,
                 'name' => $this->college->name,

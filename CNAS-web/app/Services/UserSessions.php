@@ -13,8 +13,9 @@ class UserSessions
 {
     /**
      * @param  string|null  $keepSessionId  a web session to keep (the browser that changed its own password).
+     * @param  int|null  $keepTokenId  an app token to keep (the phone that changed its own password).
      */
-    public function endAll(User $user, ?string $keepSessionId = null): void
+    public function endAll(User $user, ?string $keepSessionId = null, ?int $keepTokenId = null): void
     {
         if (config('session.driver') === 'database') {
             DB::connection(config('session.connection'))
@@ -24,6 +25,6 @@ class UserSessions
                 ->delete();
         }
 
-        $user->tokens()->delete();
+        $user->tokens()->when($keepTokenId !== null, fn ($query) => $query->whereKeyNot($keepTokenId))->delete();
     }
 }

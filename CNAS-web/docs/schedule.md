@@ -1,6 +1,6 @@
 # Class schedule (students and faculty)
 
-Read this before touching "My schedule", faculty "My classes", the Home "Next class" card, room matching, or GET /api/schedule.
+Read this before touching "My schedule", faculty "My classes", the Home "Next class" card, room matching, or /api/schedule (the mobile app).
 
 ## Rules (decided, do not change without asking Clark)
 - Table `class_schedules`: one row per class meeting (user, academic term, subject, section, day, starts_at, ends_at, room_text, source).
@@ -19,16 +19,20 @@ Read this before touching "My schedule", faculty "My classes", the Home "Next cl
 - Next class: the first class today that has not ended (a class in progress shows "Now"), otherwise the first class on the next day with classes, up to the same day next week.
 
 ## Where the code is
-- `app/Services/ClassSchedules.php`: forUser (current term, sorted, rooms attached), today, next, importFromCor, replaceCorRows
+- `app/Services/ClassSchedules.php`: forUser (current term, sorted, rooms attached), today, next, add, update (a real change to a COR row makes it manual), importMessage, importFromCor, replaceCorRows. Shared by the web controllers and the API; don't put schedule rules in a controller.
 - `app/Services/RoomMatcher.php`; `app/Enums/Weekday.php` (also parses COR days: "Mon/Wed", "MW", "TTH"); `app/Enums/ScheduleSource.php`
 - COR meetings: `CorExtractor::subjects()/meetings()`, `ParsedCor::meetings()`
 - Web: `Portal/ClassScheduleController`, `Portal/ClassScheduleImportController`, `Portal/StudentDashboardController`; routes `student.schedule.*` under /student/schedule
 - Views: `resources/views/portal/schedule-*.blade.php`, `class-row.blade.php`, `class-room.blade.php`; the Home card is in `dashboard-page.blade.php`
-- API: GET /api/schedule (Sanctum), `Api/ScheduleController`, `ClassScheduleResource` (room_code and room_name are null when there is no match)
+- API (Sanctum, `Api/ScheduleController`, the same `SaveClassScheduleRequest`, `UploadCorRequest`, `ClassSchedulePolicy` and messages as the web):
+  - `GET /api/schedule`: `ClassScheduleResource` list plus `meta.term` (the term's label or null). Open to every role (staff and the admin get none). room_code and room_name are null when there is no match; `room_choice`/`room_other` are what the edit form shows picked (`SaveClassScheduleRequest::roomChoiceForMatched`).
+  - Students and faculty only (`EnsureUserHasRole`, 403 for staff, like the web): `GET /api/schedule/rooms` (the form's fixed choices and `Room::classRoomsByBuilding()`), `POST /api/schedule` (201; 409 with `NO_TERM_ADD_MESSAGE` without a current term), `PUT /api/schedule/{id}`, `DELETE /api/schedule/{id}` (403 for someone else's or an old term's row). Each answer has `message`.
+  - `POST /api/schedule/import` (students, `throttle:10,1`): the `cor` PDF; answers with the new list, `meta.term` and `message` ("15 classes imported from your COR."); 422 on `cor`.
+- App (CNAS-mobile): `app/portal/schedule.tsx` (today first, then the week; Directions opens Navigate at the room), `class-form.tsx`, `schedule-import.tsx`, and the Home "Next class" card. The last copy is kept on the phone for offline reading (`lib/portal-data.ts`).
 
 ## Gotchas
 - MySQL returns TIME as "16:00:00"; the model's accessors cut it to "16:00". Do not use isDirty() to detect an edit.
 - In the pdftotext COR layout the subject row sits between its meeting lines; in the smalot layout the lines follow the row. Both are handled in `CorExtractor::subjects()`.
 
 ## Tests
-- `tests/Feature/Schedule/`, `tests/Unit/Cor/CorMeetingsTest.php`
+- `tests/Feature/Schedule/` (the API in `ScheduleApiTest.php`), `tests/Unit/Cor/CorMeetingsTest.php`

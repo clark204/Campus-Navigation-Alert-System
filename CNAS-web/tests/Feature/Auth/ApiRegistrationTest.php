@@ -264,6 +264,7 @@ class ApiRegistrationTest extends TestCase
             'email' => 'juan@tcc.edu.ph',
             'email_verified' => false,
             'must_change_password' => false,
+            'can_send_alerts' => false,
             'role' => 'student',
             'college' => ['id' => 'C01', 'name' => College::find('C01')->name],
             'program' => ['code' => 'BSIT', 'name' => 'Bachelor of Science in Information Technology'],

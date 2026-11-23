@@ -41,14 +41,21 @@ const PATHS = {
   lock: 'M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4',
   volume: 'M11 5 6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13',
   locate: 'M12 2v3M12 19v3M2 12h3M19 12h3M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12zm0-4a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
-  bellOff: 'M8.7 3A6 6 0 0 1 18 8c0 2.6.4 4.6 1 6M17 17H3s3-2 3-9a5.9 5.9 0 0 1 .3-1.9M10.3 21a1.94 1.94 0 0 0 3.4 0M2 2l20 20',
+  plus: 'M12 5v14M5 12h14',
+  trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3',
+  clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zm0-13v4l3 2',
+  screen: 'M4 5h16v11H4zM9 20h6M12 16v4',
+  send: 'M21 3 10 14M21 3l-7 18-4-7-7-4z',
+  walk: 'M13 4a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM10 22l2-7 3 3v4M9 12l1-5 4 2 2 3M8 9l-2 4',
+  edit: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4',
+  bellOff:'M8.7 3A6 6 0 0 1 18 8c0 2.6.4 4.6 1 6M17 17H3s3-2 3-9a5.9 5.9 0 0 1 .3-1.9M10.3 21a1.94 1.94 0 0 0 3.4 0M2 2l20 20',
 } as const;
 
 export type IconName = keyof typeof PATHS;
 
-export function Icon({ name, size = 24, color, strokeWidth = 2 }: { name: IconName; size?: number; color: string; strokeWidth?: number }) {
+export function Icon({ name, size = 24, color, strokeWidth = 2, fill = 'none' }: { name: IconName; size?: number; color: string; strokeWidth?: number; fill?: string }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
       <Path d={PATHS[name]} />
     </Svg>
   );

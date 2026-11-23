@@ -1,22 +1,24 @@
-import { useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import { useState, useSyncExternalStore } from 'react';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
+import { voice } from '@/lib/navigation/voice';
 import { ROLE_LABELS, fullName, initials, isAdmin, webArea } from '@/lib/roles';
 import { useSession } from '@/lib/session';
 import { colors, fonts, radius, space, type } from '@/theme';
 import { Icon } from './icon';
+import { MenuList } from './portal-parts';
 import { PushCard } from './push-card';
 import { TccLogo } from './tcc-logo';
 import { Detail, Screen, Title } from './ui';
 import { WebLinks } from './web-links';
 
-/** The Account tab (admin and portal): who is signed in, alerts on this phone, website settings, and Sign out. */
+/** The Account tab (admin and portal): who is signed in, alerts on this phone, voice directions, Change password and
+ * Change email, and Sign out. */
 export function AccountScreen() {
   const { user, signOut, setVerifyLater } = useSession();
   const [signingOut, setSigningOut] = useState(false);
   if (!user) return null;
-
-  const area = webArea(user);
 
   return (
     <Screen>
@@ -63,18 +65,24 @@ export function AccountScreen() {
         </>
       )}
 
-      <Text style={type.heading}>On the website</Text>
-      <WebLinks
-        links={[
-          { title: 'Change password or email', detail: 'Settings on the CNAS website', icon: 'lock', url: `${area}/settings` },
-          {
-            title: isAdmin(user) ? 'Admin console' : 'My portal',
-            detail: isAdmin(user) ? 'Alerts, accounts, map data and settings' : 'Schedule, saved places and help',
-            icon: isAdmin(user) ? 'shield' : 'home',
-            url: area,
-          },
+      <Text style={type.heading}>Directions</Text>
+      <VoiceDirectionsCard />
+
+      <Text style={type.heading}>Sign-in</Text>
+      <MenuList
+        items={[
+          { title: 'Change password', detail: 'Signs you out everywhere else', icon: 'lock', onPress: () => router.push(isAdmin(user) ? '/admin/change-password' : '/portal/change-password') },
+          { title: 'Change email', detail: 'We send a code to the new address', icon: 'mail', onPress: () => router.push(isAdmin(user) ? '/admin/change-email' : '/portal/change-email') },
         ]}
       />
+
+      {/* The admin console (alerts, accounts, map data) is only on the website. */}
+      {isAdmin(user) && (
+        <>
+          <Text style={type.heading}>On the website</Text>
+          <WebLinks links={[{ title: 'Admin console', detail: 'Alerts, accounts, map data and settings', icon: 'shield', url: webArea(user) }]} />
+        </>
+      )}
 
       <Pressable
         onPress={async () => {
@@ -95,6 +103,31 @@ export function AccountScreen() {
         <Text style={[type.small, styles.center]}>Campus Navigation & Alert System</Text>
       </View>
     </Screen>
+  );
+}
+
+/** "Voice directions": spoken turns while walking with Navigate. Off by default; mute while walking is per trip. */
+function VoiceDirectionsCard() {
+  const enabled = useSyncExternalStore(
+    (listener) => voice.subscribe(listener),
+    () => voice.enabled,
+  );
+  return (
+    <View style={styles.card}>
+      <View style={[styles.cardIcon, { backgroundColor: enabled ? colors.primary : colors.muted }]}>
+        <Icon name={enabled ? 'volume' : 'mute'} size={22} color={colors.white} />
+      </View>
+      <View style={styles.flex}>
+        <Text style={type.label}>Voice directions</Text>
+        <Text style={styles.cardText}>{enabled ? 'On. Each turn is spoken while you walk. You can still mute a walk.' : 'Off. Directions show on screen only.'}</Text>
+      </View>
+      <Switch
+        value={enabled}
+        onValueChange={(value) => voice.setEnabled(value)}
+        trackColor={{ true: colors.primary, false: colors.border }}
+        accessibilityLabel="Voice directions"
+      />
+    </View>
   );
 }
 
@@ -132,6 +165,9 @@ const styles = StyleSheet.create({
   signOutPressed: { backgroundColor: colors.errorTint },
   signOutText: { fontFamily: fonts.bold, fontSize: 17, color: colors.alarm },
   center: { textAlign: 'center' },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: space.md, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  cardIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  cardText: { fontFamily: fonts.regular, fontSize: 15, lineHeight: 21, color: colors.muted },
   footer: { alignItems: 'center', gap: 4, marginTop: space.lg, paddingTop: space.lg, borderTopWidth: 1, borderTopColor: colors.border },
   footerName: { fontFamily: fonts.semibold, fontSize: 16, lineHeight: 21, color: colors.primary, textAlign: 'center', marginTop: space.xs },
 });

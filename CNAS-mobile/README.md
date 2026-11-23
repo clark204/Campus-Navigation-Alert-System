@@ -39,12 +39,24 @@ Before finishing any change: `npx expo lint` and `npx tsc --noEmit`.
 | Forgot password: send code, enter code, new password | `forgot-password.tsx` | `POST /password/forgot`, `/password/verify-code`, `/password/reset` |
 | Campus map for guests, with Back (signed in, it is the Map tab) | `map.tsx` | `GET /map` |
 | Navigate: walking directions for guests and signed-in users (`?to=`, `?from=` place ids, like the web) | `navigate.tsx` (`components/navigation/`) | `GET /map` |
-| **Admin layout** (Dashboard, Map, Account tabs) | `admin/_layout.tsx` | |
-| Admin dashboard: what students see now (alert or "No active alert"), Send an alert, Alerts, Accounts, Concerns and Settings (open the website), emergency numbers | `admin/index.tsx` | `GET /alerts/active` |
-| **Portal layout** for students, faculty and staff (Home, Map, Account tabs) | `portal/_layout.tsx` | |
-| Portal home: greeting, college, alert banner, emergency numbers, schedule, saved places and help (open the website) | `portal/index.tsx` | |
-| Map tab (both): pinch to zoom, drag, double-tap, building names, "Where to?" opens Navigate | `admin/map.tsx`, `portal/map.tsx` (`components/campus-map-screen.tsx`) | `GET /map` |
-| Account tab (both): name, role, email (verified or not), ID, college, program, alerts on this phone, website settings, **Sign out** | `admin/account.tsx`, `portal/account.tsx` (`components/account-screen.tsx`) | `POST /logout` |
+| **Admin area**: a Stack with the tabs (Dashboard, Concerns, Accounts, Map, Account) and the pages they open | `admin/_layout.tsx`, `admin/(tabs)/_layout.tsx` | |
+| Admin dashboard: the active alert panel (live "I'm safe" count, level, Edit wording, All clear, False alarm) or Send an alert; Concerns, Accounts, Alert history; website links for map data, photos, terms, emergency numbers, settings | `admin/(tabs)/index.tsx` (`components/alert-admin/`) | `GET /alerts` (every 10 s while open), `/admin/concerns` |
+| Send an alert: type and level, drill, wording; map pin (building under it ticked), danger zone or whole campus; "This will alert everyone" | `admin/send-alert.tsx`, `portal/send-alert.tsx` | `GET /alerts/form`, `/map`, `POST /alerts` |
+| End (All clear / False alarm), edit wording and level, Who is safe (every 5 s, by college), Alert history | `admin/end-alert.tsx`, `edit-alert.tsx`, `safety.tsx`, `alert-history.tsx` (`portal/` has end and history) | `/alerts/{id}/resolve`, `PUT /alerts/{id}`, `/alerts/{id}/safety` |
+| Concerns tab (Open/Resolved, new in bold, badge) and one concern (reply, Mark as resolved, Reopen) | `admin/(tabs)/concerns.tsx`, `admin/concern.tsx` (`components/admin/concerns.tsx`) | `/admin/concerns…` |
+| Accounts tab (search, role and "Can send alerts" filters), one account (trust, faculty or staff, temporary password, delete), create or edit | `admin/(tabs)/accounts.tsx`, `account-view.tsx`, `account-form.tsx` (`components/admin/accounts.tsx`) | `/admin/accounts…` |
+| Emergency alerts for trusted faculty and staff (Home shows it when `can_send_alerts`) | `portal/alerts.tsx` | `GET /alerts` |
+| **Portal area** for students, faculty and staff: a Stack with the tabs (Home, Map, Account) and the pages below | `portal/_layout.tsx`, `portal/(tabs)/_layout.tsx` | |
+| Portal home: greeting, the bell (unread count), alert banner, next class with Directions, My schedule / Saved places / Help & contact, emergency numbers. Staff get no class card | `portal/(tabs)/index.tsx` | `GET /schedule`, `/places`, `/notifications` |
+| My schedule (students) or My classes (faculty): today first, then the week; Directions per class; tap to edit | `portal/schedule.tsx` | `GET /schedule` |
+| Add, edit or delete a class: day chips, time chips, room list with search | `portal/class-form.tsx` (`components/class-form-parts.tsx`) | `GET /schedule/rooms`, `POST`/`PUT`/`DELETE /schedule` |
+| Import from COR (students) | `portal/schedule-import.tsx` | `POST /schedule/import` |
+| Saved places and Recent: tap for directions, remove, clear Recent. Saving is the star on Navigate's place card | `portal/saved-places.tsx` | `GET /places`, `/places/{room}/save`, `DELETE /places/recent` |
+| Help & contact: topic and message, then My messages with status and replies | `portal/help.tsx` | `GET`/`POST /concerns` |
+| Notifications (the bell): "The administrator replied" opens Help & contact at that message | `portal/notifications.tsx` | `GET /notifications`, `POST /notifications/…/read` |
+| Change password (also replaces a temporary password) and Change email (code to the new address, resend, cancel), both areas | `portal/` and `admin/change-password.tsx`, `change-email.tsx` (`components/change-*-screen.tsx`) | `/account/password`, `/account/email…` |
+| Map tab (both): pinch to zoom, drag, double-tap, building names, "Where to?" opens Navigate | `admin/(tabs)/map.tsx`, `portal/(tabs)/map.tsx` (`components/campus-map-screen.tsx`) | `GET /map` |
+| Account tab (both): name, role, email (verified or not), ID, college, program, alerts on this phone, voice directions, Change password, Change email, the admin console link (admin only), **Sign out** | `admin/(tabs)/account.tsx`, `portal/(tabs)/account.tsx` (`components/account-screen.tsx`) | `POST /logout` |
 
 `_layout.tsx` decides which screens exist (Expo Router protected routes), with exactly one area open at a time:
 - **guests:** Welcome, Sign in, Create account, Forgot password and the map
@@ -53,9 +65,15 @@ Before finishing any change: `npx expo lint` and `npx tsc --noEmit`.
 - **students, faculty and staff:** the portal (`/portal`), like the website's areas
 
 Every top-level screen must stay inside a guard: when the session changes, Expo Router jumps to the first screen still
-allowed, and an unguarded one would win (signing in used to land on the map, with no way to sign out). On start the
+allowed, and an unguarded one would win (signing in used to land on the map, with no way to sign out). An area's own
+pages go inside its folder, not at the root, for the same reason: as root screens, signing in opened Help & contact
+instead of Home. On start the
 saved token is checked with `GET /me`. A 401 from any call signs out and goes back to Welcome. Offline, the last known
 user is shown.
+
+The schedule and saved places are kept on the phone (`lib/portal-data.ts`, AsyncStorage) and shown offline with "Showing
+your schedule from …" and Try again. They refresh when a screen opens and the copy is older than 30 seconds, and on
+pull to refresh. Signing out forgets them.
 
 ## Intro
 
@@ -108,9 +126,13 @@ Walking directions like /navigate on the website (CNAS-web `docs/navigation.md`)
   reads the CNAS QR codes (the web's `/navigate?from=<place>` links). Scanned while walking, it is "I'm here" at that
   spot, or a new route from there when it is off the route.
 - **Search** (`src/lib/navigation/places.ts`): room names, building landmark names, gates, and words like "CR", "lab",
-  "office". Codes are never shown. A building goes to its nearest ground-floor door.
+  "office". Codes are never shown. A building goes to its nearest ground-floor door. With nothing typed, the list is
+  the web picker's (main.js `fillPicker`): Gates, then every building's rooms by floor (`browsePlaces`); a building
+  chip on the first card lists that building's rooms.
 - **Phone parts:** `location.ts` (expo-location, about one fix a second, while the app is open only), `steps.ts`
-  (accelerometer into the shared step counter), `voice.ts` (expo-speech, mute remembered), expo-keep-awake while
+  (accelerometer into the shared step counter), `voice.ts` (expo-speech; "Voice directions" on the Account tab, off by default like the web, saved as
+  `cnas.nav.voice`, the old `cnas.nav.muted` is removed; the mute button only changes the trip under way, and the
+  route to safety will start its trip with `alwaysOn`), expo-keep-awake while
   walking. No compass is used. Android reports a missing speed or direction as 0 (expo-location copies `getSpeed()`
   and `getBearing()` unchecked); `location.ts` treats 0 as unknown, or the dot would freeze as "standing still".
 - **Drawing:** `components/navigation/` (route line in meters inside the zooming map, the blue dot gliding between

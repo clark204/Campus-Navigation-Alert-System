@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,13 +18,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, fonts, radius, space, type } from '@/theme';
 import { Icon } from './icon';
 
-/** A scrolling screen that keeps fields above the keyboard. */
-export function Screen({ children, top }: { children: ReactNode; top?: ReactNode }) {
+/** A scrolling screen that keeps fields above the keyboard. `onRefresh` adds pull to refresh. */
+export function Screen({ children, top, onRefresh, refreshing = false }: { children: ReactNode; top?: ReactNode; onRefresh?: () => void; refreshing?: boolean }) {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       {top}
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} /> : undefined}>
           {children}
         </ScrollView>
       </KeyboardAvoidingView>
@@ -60,15 +64,17 @@ export function Body({ children, muted }: { children: ReactNode; muted?: boolean
 type ButtonProps = {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'quiet' | 'link';
+  variant?: 'primary' | 'quiet' | 'link' | 'danger';
   loading?: boolean;
   loadingTitle?: string;
   disabled?: boolean;
+  /** Links only: centered under the screen's main button (the closing "Create an account" kind of link). */
+  center?: boolean;
 };
 
-export function Button({ title, onPress, variant = 'primary', loading, loadingTitle, disabled }: ButtonProps) {
+export function Button({ title, onPress, variant = 'primary', loading, loadingTitle, disabled, center }: ButtonProps) {
   const off = disabled || loading;
-  const textColor = variant === 'primary' ? colors.white : colors.primary;
+  const textColor = variant === 'primary' || variant === 'danger' ? colors.white : colors.primary;
   return (
     <Pressable
       onPress={onPress}
@@ -77,9 +83,11 @@ export function Button({ title, onPress, variant = 'primary', loading, loadingTi
       accessibilityState={{ disabled: !!off, busy: !!loading }}
       style={({ pressed }) => [
         variant === 'link' ? styles.link : styles.button,
+        variant === 'link' && center && styles.linkCenter,
         variant === 'primary' && styles.primary,
         variant === 'quiet' && styles.quiet,
-        pressed && (variant === 'primary' ? styles.primaryPressed : styles.pressed),
+        variant === 'danger' && styles.danger,
+        pressed && (variant === 'primary' ? styles.primaryPressed : variant === 'danger' ? styles.dangerPressed : styles.pressed),
         off && styles.disabled,
       ]}>
       {loading && <ActivityIndicator color={textColor} />}
@@ -182,10 +190,13 @@ const styles = StyleSheet.create({
   primary: { backgroundColor: colors.primary },
   primaryPressed: { backgroundColor: colors.primaryHover },
   quiet: { borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.surface },
+  danger: { backgroundColor: colors.alarm },
+  dangerPressed: { backgroundColor: colors.alarmDeep },
   pressed: { opacity: 0.7 },
   disabled: { opacity: 0.55 },
   buttonText: { fontFamily: fonts.bold, fontSize: 17 },
   link: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
+  linkCenter: { alignSelf: 'center' },
   linkText: { fontFamily: fonts.semibold, fontSize: 16, textDecorationLine: 'underline' },
   field: { gap: 6 },
   input: {

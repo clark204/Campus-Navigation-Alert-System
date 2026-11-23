@@ -9,7 +9,6 @@ use App\Models\AcademicTerm;
 use App\Services\ClassSchedules;
 use App\Services\RegistrationService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -35,12 +34,6 @@ class ClassScheduleImportController extends Controller
         $cor = $registrations->acceptCor($request->file('cor'), $term);
         $result = $schedules->importFromCor($request->user(), $cor, $term);
 
-        $status = $result['imported'].' '.Str::plural('class', $result['imported']).' imported from your COR.';
-
-        if ($result['kept'] > 0) {
-            $status .= ' '.$result['kept'].' '.Str::plural('class', $result['kept']).' you changed by hand '.($result['kept'] === 1 ? 'was' : 'were').' kept.';
-        }
-
-        return to_route('student.schedule.index')->with('status', $status);
+        return to_route('student.schedule.index')->with('status', ClassSchedules::importMessage($result));
     }
 }

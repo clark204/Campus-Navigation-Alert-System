@@ -1,14 +1,30 @@
-import { Tabs } from 'expo-router/js-tabs';
+import { Stack } from 'expo-router';
 
-import { tab, useTabBarOptions } from '@/components/tab-options';
+import { colors } from '@/theme';
 
-/** The portal layout for students, faculty and staff: Home, Map and Account tabs (signing out is under Account). */
+// The tabs are the first screen, so a page opened from Home goes back to them.
+export const unstable_settings = { initialRouteName: '(tabs)' };
+
+/**
+ * The portal for students, faculty and staff: the tabs (Home, Map, Account) and the pages they open. The pages live
+ * inside the portal (not at the root) so that after a sign-in the root layout's redirect lands on the tabs.
+ */
 export default function PortalLayout() {
   return (
-    <Tabs screenOptions={useTabBarOptions()}>
-      <Tabs.Screen name="index" options={tab('Home', 'home')} />
-      <Tabs.Screen name="map" options={tab('Map', 'map')} />
-      <Tabs.Screen name="account" options={tab('Account', 'user')} />
-    </Tabs>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="schedule" />
+      <Stack.Screen name="class-form" />
+      <Stack.Screen name="schedule-import" />
+      <Stack.Screen name="saved-places" />
+      <Stack.Screen name="help" />
+      <Stack.Screen name="notifications" />
+      <Stack.Screen name="alerts" />
+      <Stack.Screen name="send-alert" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="end-alert" />
+      <Stack.Screen name="alert-history" />
+      <Stack.Screen name="change-password" />
+      <Stack.Screen name="change-email" />
+    </Stack>
   );
 }

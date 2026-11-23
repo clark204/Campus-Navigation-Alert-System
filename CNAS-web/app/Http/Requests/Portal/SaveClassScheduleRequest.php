@@ -108,13 +108,22 @@ class SaveClassScheduleRequest extends FormRequest
      */
     public static function roomChoiceFor(?ClassSchedule $class, RoomMatcher $rooms): array
     {
+        return self::roomChoiceForMatched($class, $class === null ? null : $rooms->match($class->room_text));
+    }
+
+    /**
+     * roomChoiceFor() with the class's room already matched (the `room` that RoomMatcher::attach sets).
+     *
+     * @return array{choice: string, other: ?string}
+     */
+    public static function roomChoiceForMatched(?ClassSchedule $class, ?Room $room): array
+    {
         if ($class === null || RoomMatcher::normalize($class->room_text) === 'tba') {
             return ['choice' => self::CHOICE_TBA, 'other' => null];
         }
         if (RoomMatcher::normalize($class->room_text) === 'online') {
             return ['choice' => self::CHOICE_ONLINE, 'other' => null];
         }
-        $room = $rooms->match($class->room_text);
 
         return $room ? ['choice' => $room->code, 'other' => null] : ['choice' => self::CHOICE_OTHER, 'other' => $class->room_text];
     }

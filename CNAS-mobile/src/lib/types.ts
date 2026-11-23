@@ -10,6 +10,8 @@ export type User = {
   email: string;
   email_verified: boolean;
   must_change_password: boolean;
+  /** The admin, or faculty and staff the admin trusts: the app shows Send an alert. */
+  can_send_alerts: boolean;
   role: 'admin' | 'staff' | 'faculty' | 'student';
   college: { id: string; name: string } | null;
   program: { code: string; name: string } | null;
@@ -69,4 +71,66 @@ export type Alert = {
   banner_expires_at: string | null;
   /** Only when signed in: "safe" when this user already tapped "I'm safe" (any device). Null outside an emergency. */
   my_safety_status?: 'safe' | null;
+};
+
+export type Weekday = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
+
+/** ClassScheduleResource: GET /api/schedule → { data: ClassItem[], meta: { term } }. Times are 24-hour campus time. */
+export type ClassItem = {
+  id: number;
+  subject: string;
+  section: string | null;
+  day: Weekday;
+  starts_at: string;
+  ends_at: string;
+  /** As written ("CompLab1", "Online", "TBA"). */
+  room_text: string;
+  /** The room on the map (its place id for directions), or null. */
+  room_code: string | null;
+  room_name: string | null;
+  /** What the edit form shows picked: "TBA", "Online", "other" or a room code. */
+  room_choice: string;
+  room_other: string | null;
+  source: 'cor' | 'manual';
+};
+
+/** GET /api/schedule/rooms: the class form's room list. */
+export type RoomChoices = {
+  choices: { value: string; label: string }[];
+  buildings: { name: string; rooms: { code: string; label: string }[] }[];
+};
+
+/** PlaceResource: GET /api/places → { saved, recent }. */
+export type SavedPlace = { code: string; name: string; location: string };
+
+/** ConcernResource: GET /api/concerns → { data: Concern[], meta: { email, topics } }. */
+export type Concern = {
+  id: number;
+  topic: string;
+  topic_label: string;
+  message: string;
+  status: 'open' | 'resolved';
+  sent_at: string | null;
+  resolved_at: string | null;
+  replies: { id: number; message: string; sent_at: string | null }[];
+};
+
+export type ConcernTopic = { value: string; label: string };
+
+/** GET /api/notifications → { unread_count, data: BellNotification[] }. */
+export type BellNotification = {
+  id: string;
+  kind: string | null;
+  concern_id: number | null;
+  title: string;
+  body: string;
+  read: boolean;
+  created_at: string | null;
+};
+
+/** GET /api/account/email (and the email change answers): a change waits for its code while `pending` is set. */
+export type EmailState = {
+  email: string;
+  email_verified: boolean;
+  pending: { email: string; resend_in: number } | null;
 };

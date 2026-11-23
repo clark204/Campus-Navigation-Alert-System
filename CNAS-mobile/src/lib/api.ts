@@ -39,7 +39,7 @@ export function setUnauthorizedHandler(handler: (() => void) | null) {
 }
 
 type Options = {
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   /** A plain object is sent as JSON; FormData as multipart (file uploads). */
   body?: Record<string, unknown> | FormData;
   timeoutMs?: number;

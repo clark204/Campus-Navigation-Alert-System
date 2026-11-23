@@ -10,8 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 /**
- * Saved and recent places of the signed-in user. /navigate calls these with fetch (JSON); the Saved places page
- * uses plain forms (redirect back with a message).
+ * Saved and recent places of the signed-in user. /navigate and the mobile app (/api/places/…) call these for JSON;
+ * the Saved places page uses plain forms (redirect back with a message).
  */
 class PlaceController extends Controller
 {
@@ -39,11 +39,13 @@ class PlaceController extends Controller
         return response()->noContent();
     }
 
-    public function clearRecent(Request $request, RecentPlaces $recentPlaces): RedirectResponse
+    public function clearRecent(Request $request, RecentPlaces $recentPlaces): JsonResponse|RedirectResponse
     {
         $recentPlaces->clear($request->user());
 
-        return back()->with('status', 'Recent places cleared.');
+        return $request->expectsJson()
+            ? response()->json(['message' => 'Recent places cleared.'])
+            : back()->with('status', 'Recent places cleared.');
     }
 
     private function reply(Request $request, bool $saved, string $message): JsonResponse|RedirectResponse

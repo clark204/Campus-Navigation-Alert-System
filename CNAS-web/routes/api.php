@@ -1,15 +1,28 @@
 <?php
 
+use App\Enums\UserRole;
+use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\ActiveAlertController;
+use App\Http\Controllers\Api\Admin\AccountController as AdminAccountController;
+use App\Http\Controllers\Api\Admin\ConcernController as AdminConcernController;
+use App\Http\Controllers\Api\AlertManagementController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ConcernController as ApiConcernController;
 use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\EmergencyContactController;
 use App\Http\Controllers\Api\MapController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PasswordRecoveryController;
+use App\Http\Controllers\Api\PlaceController as ApiPlaceController;
 use App\Http\Controllers\Api\PushTokenController;
 use App\Http\Controllers\Api\RegisterController;
 use App\Http\Controllers\Api\ScheduleController;
+use App\Http\Controllers\ConcernController;
+use App\Http\Controllers\PlaceController;
 use App\Http\Controllers\SafetyCheckController;
+use App\Http\Middleware\EnsureUserCanSendAlerts;
+use App\Http\Middleware\EnsureUserHasRole;
+use App\Http\Middleware\EnsureUserIsAdmin;
 use Illuminate\Http\Middleware\SetCacheHeaders;
 use Illuminate\Support\Facades\Route;
 
@@ -65,8 +78,88 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/email/verify', [EmailVerificationController::class, 'verify'])->middleware('throttle:email-code-verify')->name('api.email.verify');
     Route::post('/email/resend', [EmailVerificationController::class, 'resend'])->middleware('throttle:email-code-send')->name('api.email.resend');
 
-    // The signed-in student's classes for the current term, each with its room on the map when there is one.
-    Route::get('/schedule', ScheduleController::class)->name('api.schedule');
+    // "My schedule" (students) and "My classes" (faculty), like the web portal (docs/schedule.md). Reading is open to
+    // every role (staff and the admin just get no classes); changing them is for students and faculty, like the web.
+    Route::controller(ScheduleController::class)->prefix('schedule')->group(function () {
+        Route::get('/', 'index')->name('api.schedule');
+        Route::middleware(EnsureUserHasRole::using(UserRole::Student, UserRole::Faculty))->name('api.schedule.')->group(function () {
+            Route::get('/rooms', 'rooms')->name('rooms');
+            Route::post('/', 'store')->name('store');
+            Route::put('/{classSchedule}', 'update')->name('update');
+            Route::delete('/{classSchedule}', 'destroy')->name('destroy');
+            Route::post('/import', 'import')->middleware([EnsureUserHasRole::using(UserRole::Student), 'throttle:10,1'])->name('import');
+        });
+    });
+
+    // Account → Change email and Change password, like Settings → My account on the web (same requests, rules and
+    // limits; docs/registration.md "Email verification"). A new email is only saved after the code sent to it.
+    Route::controller(AccountController::class)->prefix('account')->name('api.account.')->group(function () {
+        Route::get('/email', 'email')->name('email');
+        Route::put('/email', 'updateEmail')->middleware('throttle:settings-email-code-send')->name('email.update');
+        Route::put('/email/confirm', 'confirmEmail')->middleware('throttle:settings-email-code-verify')->name('email.confirm');
+        Route::post('/email/resend', 'resendEmailCode')->middleware('throttle:settings-email-code-send')->name('email.resend');
+        Route::delete('/email', 'cancelEmail')->name('email.cancel');
+        Route::put('/password', 'updatePassword')->middleware('throttle:6,1')->name('password');
+    });
+
+    // The portal's Saved places, Help & contact and the bell, for students, faculty and staff (docs/portal.md). Saving,
+    // Recent and sending a concern use the web's own controllers, which answer JSON.
+    Route::middleware(EnsureUserHasRole::using(UserRole::Student, UserRole::Faculty, UserRole::Staff))->group(function () {
+        Route::get('/places', ApiPlaceController::class)->name('api.places');
+        Route::controller(PlaceController::class)->prefix('places')->name('api.places.')->middleware('throttle:60,1')->group(function () {
+            Route::delete('/recent', 'clearRecent')->name('recent.clear');
+            Route::post('/{room}/save', 'save')->name('save');
+            Route::delete('/{room}/save', 'unsave')->name('unsave');
+            Route::post('/{room}/recent', 'recent')->name('recent');
+        });
+
+        Route::get('/concerns', ApiConcernController::class)->name('api.concerns');
+        Route::post('/concerns', [ConcernController::class, 'store'])->middleware('throttle:5,10')->name('api.concerns.store');
+
+        Route::controller(NotificationController::class)->prefix('notifications')->name('api.notifications.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/read', 'readAll')->name('read-all');
+            Route::post('/{notification}/read', 'read')->name('read');
+        });
+    });
+
+    // Sending and ending alerts from the app: the admin and the faculty and staff the admin trusts, like the web
+    // (docs/alerts.md). The same requests and Alert methods, so everything is logged and pushed the same way. Editing
+    // the wording or level and the "I'm safe" live view are the admin's (UpdateAlertRequest, EnsureUserIsAdmin).
+    Route::controller(AlertManagementController::class)->prefix('alerts')->name('api.alerts.')
+        ->middleware(EnsureUserCanSendAlerts::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/form', 'form')->name('form');
+            Route::post('/', 'store')->name('store');
+            Route::put('/{alert}', 'update')->name('update');
+            Route::post('/{alert}/resolve', 'resolve')->name('resolve');
+            Route::get('/{alert}/safety', 'safety')->middleware(EnsureUserIsAdmin::class)->name('safety');
+        });
+
+    // Admin > Concerns and Admin > Accounts for the app (admin only), with the web's services and requests
+    // (ConcernInbox, AccountAdministration; docs/portal.md, docs/accounts.md).
+    Route::middleware(EnsureUserIsAdmin::class)->prefix('admin')->name('api.admin.')->group(function () {
+        Route::controller(AdminConcernController::class)->prefix('concerns')->name('concerns.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/{concern}', 'show')->name('show');
+            Route::post('/{concern}/replies', 'reply')->name('reply');
+            Route::patch('/{concern}/resolve', 'resolve')->name('resolve');
+            Route::patch('/{concern}/reopen', 'reopen')->name('reopen');
+        });
+
+        Route::controller(AdminAccountController::class)->prefix('accounts')->name('accounts.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/options', 'options')->name('options');
+            Route::post('/', 'store')->name('store');
+            Route::get('/{user}', 'show')->name('show');
+            Route::put('/{user}', 'update')->name('update');
+            Route::patch('/{user}/trust', 'trust')->name('trust');
+            Route::patch('/{user}/password', 'password')->name('password');
+            Route::patch('/{user}/role', 'role')->name('role');
+            Route::delete('/{user}', 'destroy')->name('destroy');
+        });
+    });
 
     // "I'm safe" from the app's takeover or banner. The web controller, answering JSON: 409 when the alert is over or
     // isn't an emergency. Unverified users can answer, like on the web.

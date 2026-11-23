@@ -13,6 +13,9 @@ class UpdatePasswordRequest extends FormRequest
     /** @var string */
     protected $errorBag = 'accountPassword';
 
+    /** The guard whose signed-in user the current password is checked against (the app's uses sanctum). */
+    protected string $passwordGuard = 'web';
+
     public function authorize(): bool
     {
         return $this->user() !== null;
@@ -24,7 +27,7 @@ class UpdatePasswordRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'current_password' => ['required', 'string', 'current_password:web'],
+            'current_password' => ['required', 'string', 'current_password:'.$this->passwordGuard],
             'password' => ['required', 'string', 'confirmed', 'different:current_password', Password::defaults()],
         ];
     }

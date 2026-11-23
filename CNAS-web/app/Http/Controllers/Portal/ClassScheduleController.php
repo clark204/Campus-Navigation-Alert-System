@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Portal;
 
-use App\Enums\ScheduleSource;
 use App\Enums\UserRole;
 use App\Enums\Weekday;
 use App\Http\Controllers\Controller;
@@ -47,20 +46,14 @@ class ClassScheduleController extends Controller
         return view('portal.schedule-form-page', [...$this->portal($request), ...$this->roomList(null, $rooms), 'class' => null]);
     }
 
-    public function store(SaveClassScheduleRequest $request): RedirectResponse
+    public function store(SaveClassScheduleRequest $request, ClassSchedules $schedules): RedirectResponse
     {
-        $term = AcademicTerm::current();
         $index = $this->portal($request)['scheduleRoute'].'.index';
+        $class = $schedules->add($request->user(), $request->classAttributes());
 
-        if ($term === null) {
-            return to_route($index)->with('warning', 'There is no current term yet, so classes cannot be added.');
+        if ($class === null) {
+            return to_route($index)->with('warning', ClassSchedules::NO_TERM_ADD_MESSAGE);
         }
-
-        $class = $request->user()->classSchedules()->create([
-            ...$request->classAttributes(),
-            'academic_term_id' => $term->id,
-            'source' => ScheduleSource::Manual,
-        ]);
 
         return to_route($index)->with('status', "{$class->subject} was added.");
     }
@@ -73,27 +66,11 @@ class ClassScheduleController extends Controller
     }
 
     /**
-     * A COR row the student really changes becomes a manual row, so a later import keeps the change.
+     * A COR row the student really changes becomes a manual row (ClassSchedules::update).
      */
-    public function update(SaveClassScheduleRequest $request, ClassSchedule $classSchedule, RoomMatcher $rooms): RedirectResponse
+    public function update(SaveClassScheduleRequest $request, ClassSchedule $classSchedule, ClassSchedules $schedules): RedirectResponse
     {
-        $validated = $request->classAttributes();
-
-        // The same room picked again keeps its text as written ("CompLab1" from a COR is the room r6): not a change.
-        if ($rooms->match($validated['room_text'])?->is($rooms->match($classSchedule->room_text))) {
-            $validated['room_text'] = $classSchedule->room_text;
-        }
-
-        // Compared as shown, not with isDirty(): the database's "16:00:00" is the form's "16:00".
-        $changed = collect($validated)->contains(function (?string $value, string $field) use ($classSchedule): bool {
-            $current = $classSchedule->getAttribute($field);
-
-            return (string) ($current instanceof Weekday ? $current->value : $current) !== (string) $value;
-        });
-
-        if ($changed) {
-            $classSchedule->fill([...$validated, 'source' => ScheduleSource::Manual])->save();
-        }
+        $schedules->update($classSchedule, $request->classAttributes());
 
         return to_route($this->portal($request)['scheduleRoute'].'.index')->with('status', "{$classSchedule->subject} was saved.");
     }
@@ -108,18 +85,15 @@ class ClassScheduleController extends Controller
     }
 
     /**
-     * The room list for the form: every room on the map a class could meet in (not comfort rooms) grouped by building
-     * (natural order, so ComLab 2 comes before
-     * ComLab 10), and what is selected for this class (SaveClassScheduleRequest::roomChoiceFor).
+     * The room list for the form (Room::classRoomsByBuilding), and what is selected for this class
+     * (SaveClassScheduleRequest::roomChoiceFor).
      *
      * @return array{roomsByBuilding: Collection<string, Collection<int, Room>>, roomChoice: array{choice: string, other: ?string}}
      */
     private function roomList(?ClassSchedule $class, RoomMatcher $rooms): array
     {
         return [
-            'roomsByBuilding' => Room::query()->classRooms()->with('building')->get()
-                ->sortBy(fn (Room $room) => $room->buildingLabel().' '.$room->floor.' '.$room->name, SORT_NATURAL | SORT_FLAG_CASE)
-                ->groupBy(fn (Room $room) => $room->buildingLabel()),
+            'roomsByBuilding' => Room::classRoomsByBuilding(),
             'roomChoice' => SaveClassScheduleRequest::roomChoiceFor($class, $rooms),
         ];
     }

@@ -77,7 +77,11 @@ function App({ fontsReady }: { fontsReady: boolean }) {
  * - guests and both signed-in areas: Navigate (walking directions)
  * - signed in with an unverified email: Verify email (until "Skip for now")
  * - the admin: the admin layout (app/admin: Dashboard, Map, Account tabs)
- * - students, faculty and staff: the portal (app/portal: Home, Map, Account tabs)
+ * - students, faculty and staff: the portal (app/portal: Home, Map, Account tabs, and the pages they open: My schedule,
+ *   Saved places, Help & contact, Notifications, Change password and email)
+ *
+ * An area's pages live inside its folder, not at the root: a root screen allowed for the portal could win the redirect
+ * after a sign-in (it did: Help & contact opened instead of Home).
  *
  * Exactly one of these is open at a time. When the session changes, Expo Router moves to the first screen that is
  * still allowed; with only one area open that is always the right one, so signing in, verifying and signing out need
