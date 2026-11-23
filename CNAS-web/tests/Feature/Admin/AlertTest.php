@@ -56,6 +56,7 @@ class AlertTest extends TestCase
             'severity' => 'emergency',
             'title' => 'Fire on campus',
             'message' => 'A fire has been reported at the NEE Building.',
+            'what_to_do' => 'Leave the building now.',
             'instructions' => 'Leave the building now.',
             'latitude' => (string) self::NEE_LATITUDE,
             'longitude' => (string) self::NEE_LONGITUDE,
@@ -71,7 +72,7 @@ class AlertTest extends TestCase
             ->assertOk()
             ->assertSee('<input type="radio" name="type" value="flood" checked', false)
             ->assertSee('value="Flooding on campus"', false)
-            ->assertSee('Move to an upper floor or higher ground.')
+            ->assertSee('Go to an upper floor. Stay out of the water.')
             ->assertSee('value="b1"', false)
             ->assertSee('NEE Building')
             ->assertSee('<input type="radio" name="danger_radius_m" value="50" checked', false);
@@ -180,6 +181,7 @@ class AlertTest extends TestCase
             'severity' => 'emergency',
             'title' => 'Fire at Building 03',
             'message' => 'A fire has been reported at Building 03.',
+            'what_to_do' => 'Leave Building 03 now.',
             'instructions' => '',
             'building_codes' => ['b10'],
         ])->assertRedirect(route('admin.alerts.index'));
@@ -268,9 +270,8 @@ class AlertTest extends TestCase
             ])
             ->assertSeeInOrder([
                 'History',
-                'Fire on campus', 'Active', 'NEE Building',
-                'Earthquake', 'DRILL', 'False alarm', 'Whole campus', 'False alarm: The drill is over.',
-                'Sent Nov 8, 2026, 2:14 PM by Campus Admin', 'Resolved Nov 8, 2026, 2:14 PM by Campus Admin',
+                'Nov 8, 2026', '3:14 PM', 'Fire on campus', 'Fire', 'Active now', 'Ongoing',
+                'Nov 8, 2026', '2:14 PM', 'Earthquake', 'Drill', 'False alarm', 'Under a minute',
             ]);
     }
 

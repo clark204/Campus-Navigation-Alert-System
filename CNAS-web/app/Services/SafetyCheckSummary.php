@@ -89,6 +89,57 @@ class SafetyCheckSummary
     }
 
     /**
+     * The help requests (every "I need help"): open ones first, waiting before "on the way", oldest first (the person
+     * who has waited longest); then the helped ones, latest first.
+     *
+     * @return Collection<int, SafetyCheck>
+     */
+    public function helpRequests(Alert $alert): Collection
+    {
+        return SafetyCheck::query()
+            ->where('alert_id', $alert->id)
+            ->where('status', SafetyStatus::NeedHelp)
+            ->with(['user.program.college', 'responder', 'helper'])
+            ->get()
+            ->sortBy(fn (SafetyCheck $check) => match (true) {
+                $check->helped_at !== null => [2, -$check->helped_at->getTimestamp()],
+                $check->responder_id !== null => [1, $check->responded_at->getTimestamp()],
+                default => [0, $check->responded_at->getTimestamp()],
+            })
+            ->values();
+    }
+
+    /**
+     * One help request for the admin's map and queue (web help panel and the app's GET /api/alerts/{alert}/safety).
+     *
+     * @return array{id: int, name: string, role: string, college: string|null, note: string|null, status: string, status_label: string, latitude: float|null, longitude: float|null, accuracy_m: int|null, located_at: string|null, asked_at: string, responder_id: int|null, responder_name: string|null, responding_at: string|null, helped_by_name: string|null, helped_at: string|null}
+     */
+    public static function helpRequestData(SafetyCheck $check): array
+    {
+        $status = $check->helpStatus();
+
+        return [
+            'id' => $check->id,
+            'name' => $check->user->full_name,
+            'role' => $check->user->role->label(),
+            'college' => $check->user->program?->college?->name,
+            'note' => $check->note,
+            'status' => $status->value,
+            'status_label' => $status->label(),
+            'latitude' => $check->latitude,
+            'longitude' => $check->longitude,
+            'accuracy_m' => $check->accuracy_m,
+            'located_at' => $check->located_at?->toIso8601String(),
+            'asked_at' => $check->responded_at->toIso8601String(),
+            'responder_id' => $check->responder_id,
+            'responder_name' => $check->responder?->full_name,
+            'responding_at' => $check->responding_at?->toIso8601String(),
+            'helped_by_name' => $check->helper?->full_name,
+            'helped_at' => $check->helped_at?->toIso8601String(),
+        ];
+    }
+
+    /**
      * Counts grouped by the program's college (NO_COLLEGE when there is none).
      *
      * @param  \Illuminate\Database\Eloquent\Builder<*>  $query

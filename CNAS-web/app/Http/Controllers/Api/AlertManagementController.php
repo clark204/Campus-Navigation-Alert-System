@@ -81,6 +81,8 @@ class AlertManagementController extends Controller
             ], AlertSeverity::cases()),
             'radii' => Alert::DANGER_RADII,
             'default_radius' => Alert::DEFAULT_DANGER_RADIUS,
+            // The wording limits (UpdateAlertRequest::wordingRules), for the app's counters.
+            'limits' => ['title' => Alert::TITLE_MAX, 'what_to_do' => Alert::WHAT_TO_DO_MAX],
             'buildings' => collect($map->buildings())->map(fn (string $name, string $code) => ['code' => $code, 'name' => $name])->values(),
             'resolutions' => array_map(fn (AlertResolution $resolution) => [
                 'value' => $resolution->value,
@@ -157,6 +159,8 @@ class AlertManagementController extends Controller
                 'note' => $check->note,
                 'responded_at' => $check->responded_at->toIso8601String(),
             ])->values(),
+            // The help queue with where each person is (admin only: the route is behind EnsureUserIsAdmin).
+            'help_requests' => $safety->helpRequests($alert)->map(SafetyCheckSummary::helpRequestData(...))->values(),
         ])->header('Cache-Control', 'no-store');
     }
 }

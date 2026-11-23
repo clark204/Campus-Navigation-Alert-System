@@ -12,7 +12,7 @@ export type AlertTypeOption = {
   severity: AlertSeverity;
   /** Storms and earthquakes hit the whole campus, so the form starts without a pin for them. */
   campus_wide: boolean;
-  template: { title: string; message: string; instructions: string };
+  template: { title: string; message: string; what_to_do: string; instructions: string };
 };
 
 export type SeverityOption = { value: AlertSeverity; label: string; color: string; description: string; example: string; students_get: string };
@@ -25,6 +25,8 @@ export type AlertFormData = {
   severities: SeverityOption[];
   radii: number[];
   default_radius: number;
+  /** The wording limits: title (60) and "What to do now" (100). */
+  limits: { title: number; what_to_do: number };
   buildings: { code: string; name: string }[];
   resolutions: ResolutionOption[];
 };
@@ -43,9 +45,38 @@ export type SafetyCounts = {
   colleges: { id: string; name: string; safe: number; need_help: number; total: number }[];
 };
 
+/** SafetyCheckSummary::helpRequestData: one "I need help", with where the person is and who is helping. */
+export type HelpRequest = {
+  id: number;
+  name: string;
+  role: string;
+  college: string | null;
+  note: string | null;
+  status: 'new' | 'responding' | 'helped';
+  status_label: string;
+  latitude: number | null;
+  longitude: number | null;
+  accuracy_m: number | null;
+  located_at: string | null;
+  asked_at: string;
+  responder_id: number | null;
+  responder_name: string | null;
+  responding_at: string | null;
+  helped_by_name: string | null;
+  helped_at: string | null;
+};
+
 export type SafetyView = SafetyCounts & {
   people: { name: string; role: string; college: string | null; status: 'safe' | 'need_help'; note: string | null; responded_at: string }[];
+  /** Open requests first (the longest waiting first), then the helped ones. */
+  help_requests: HelpRequest[];
 };
+
+/** "I'm responding" or "Mark helped" (HelpRequestController). Resolves with the updated request; throws ApiError (409). */
+export async function handleHelpRequest(alertId: number | string, requestId: number, action: 'respond' | 'helped'): Promise<HelpRequest> {
+  const result = await api<{ message: string; help_request: HelpRequest }>(`/alerts/${alertId}/help/${requestId}/${action}`, { method: 'POST' });
+  return result.help_request;
+}
 
 /** GET /api/alerts */
 export type AlertsOverview = {

@@ -17,7 +17,8 @@ use Illuminate\Http\RedirectResponse;
  */
 class NeedHelpController extends Controller
 {
-    public const THANKS = 'Help is on the way. The administrators can see your message.';
+    /** Not "on the way" yet: that is shown once an admin taps "I'm responding" (HelpPingController::helpState). */
+    public const THANKS = 'Sent. The administrators can see your request.';
 
     public function __invoke(NeedHelpRequest $request, Alert $alert): JsonResponse|RedirectResponse
     {
@@ -27,11 +28,11 @@ class NeedHelpController extends Controller
                 : back()->withErrors(['safety' => $refusal]);
         }
 
-        $check = SafetyCheck::markNeedHelp($alert, $request->user(), $request->validated('note'));
+        $check = SafetyCheck::markNeedHelp($alert, $request->user(), $request->validated('note'), $request->location());
         SendAdminReportPush::dispatch(AdminReport::needsHelp($check));
 
         return $request->expectsJson()
-            ? response()->json(['status' => 'need_help', 'message' => self::THANKS])
+            ? response()->json(['status' => 'need_help', 'message' => self::THANKS, 'help' => HelpPingController::helpState($check)])
             : back()->with('status', self::THANKS);
     }
 }

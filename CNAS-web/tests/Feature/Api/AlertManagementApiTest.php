@@ -66,6 +66,7 @@ class AlertManagementApiTest extends TestCase
             'severity' => 'emergency',
             'title' => 'Fire on campus',
             'message' => 'A fire has been reported at the NEE Building.',
+            'what_to_do' => 'Leave the building now.',
             'instructions' => 'Leave the building now.',
             'is_drill' => true,
             'latitude' => self::NEE_LATITUDE,
@@ -112,6 +113,7 @@ class AlertManagementApiTest extends TestCase
             ->assertJsonPath('types.0.severity', 'emergency')
             ->assertJsonPath('types.0.template.title', 'Fire on campus')
             ->assertJsonPath('radii', [30, 50, 100])
+            ->assertJsonPath('limits', ['title' => 60, 'what_to_do' => 100])
             ->assertJsonPath('default_radius', 50);
 
         $this->assertContains(['code' => 'b1', 'name' => 'NEE Building'], $response->json('buildings'));
@@ -211,7 +213,7 @@ class AlertManagementApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('message', 'Marked as All clear. Everyone sees it for the next 15 minutes.');
         $this->postJson(route('api.alerts.resolve', $alert), ['resolution' => 'all_clear', 'resolved_message' => 'Again.'])->assertConflict();
-        $this->putJson(route('api.alerts.update', $alert), ['title' => 'x', 'message' => 'y', 'severity' => 'emergency'])->assertConflict();
+        $this->putJson(route('api.alerts.update', $alert), ['title' => 'x', 'message' => 'y', 'what_to_do' => 'z', 'severity' => 'emergency'])->assertConflict();
 
         $this->assertSame(AlertResolution::AllClear, $alert->fresh()->resolution);
         Queue::assertPushed(SendAlertPush::class, fn (SendAlertPush $job) => $job->resolution === AlertResolution::AllClear);

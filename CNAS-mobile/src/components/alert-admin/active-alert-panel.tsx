@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { alertForm, alertsStore, campusDateTime, type AlertFormData, type AlertsOverview } from '@/lib/admin';
 import { api, errorMessage } from '@/lib/api';
 import type { AlertSeverity } from '@/lib/types';
+import { useToast } from '@/lib/toasts';
 import { colors, fonts, radius, space, type } from '@/theme';
 import { Icon } from '../icon';
 import { Button, Notice } from '../ui';
@@ -108,7 +109,7 @@ export function ActiveAlertPanel({ overview, area }: { overview: AlertsOverview 
           </Pressable>
         )}
 
-        {overview.can_edit && <ChangeLevel alertId={active.id} current={active.severity} wording={{ title: active.title, message: active.message, instructions: active.instructions }} />}
+        {overview.can_edit && <ChangeLevel alertId={active.id} current={active.severity} wording={{ title: active.title, message: active.message, what_to_do: active.what_to_do || null, instructions: active.instructions }} />}
         {overview.can_edit && (
           <Button title="Edit wording" variant="quiet" onPress={() => router.push({ pathname: '/admin/edit-alert', params: { id: String(active.id) } })} />
         )}
@@ -134,11 +135,12 @@ export function ActiveAlertPanel({ overview, area }: { overview: AlertsOverview 
 }
 
 /** Change level (admin): pick another level, confirm, PUT /api/alerts/{id} with the same wording. Logged and pushed again. */
-function ChangeLevel({ alertId, current, wording }: { alertId: number; current: AlertSeverity; wording: { title: string; message: string; instructions: string | null } }) {
+function ChangeLevel({ alertId, current, wording }: { alertId: number; current: AlertSeverity; wording: { title: string; message: string; what_to_do: string | null; instructions: string | null } }) {
   const [form, setForm] = useState<AlertFormData | null>(null);
   const [asking, setAsking] = useState<AlertSeverity | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
+  const toast = useToast();
 
   useFocusEffect(
     useCallback(() => {
@@ -152,7 +154,7 @@ function ChangeLevel({ alertId, current, wording }: { alertId: number; current: 
     setNotice(null);
     try {
       await api(`/alerts/${alertId}`, { method: 'PUT', body: { ...wording, severity: to } });
-      setNotice({ tone: 'success', text: `Changed to ${form.severities.find((s) => s.value === to)?.label}. Everyone gets a new notification.` });
+      toast(`Changed to ${form.severities.find((s) => s.value === to)?.label}. Everyone gets a new notification.`);
       setAsking(null);
       alertsStore.load(true);
     } catch (failure) {

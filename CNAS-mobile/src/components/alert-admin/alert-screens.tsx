@@ -7,10 +7,13 @@ import { api, ApiError, errorMessage } from '@/lib/api';
 import { useReportArrivals } from '@/lib/admin-reports';
 import { useResource } from '@/lib/portal-data';
 import type { AlertSeverity } from '@/lib/types';
+import { useToast } from '@/lib/toasts';
 import { colors, fonts, radius, space, type } from '@/theme';
 import { Icon } from '../icon';
 import { BackLink, Body, Button, Field, Notice, Screen, Title } from '../ui';
+import { HelpRequestsSection } from './help-requests';
 import { Chips, DrillBadge, LevelBadge, LevelPicker } from './parts';
+import { PhonePreview, WordingFields, type Wording } from './wording';
 
 const multiline = { minHeight: 96, textAlignVertical: 'top' as const, paddingTop: 14, paddingBottom: 14, lineHeight: 24 };
 
@@ -33,7 +36,7 @@ export function EndAlertScreen({ backLabel }: { backLabel: string }) {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState<string | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     alertForm().then(setForm, (failure) => setError(errorMessage(failure)));
@@ -41,16 +44,6 @@ export function EndAlertScreen({ backLabel }: { backLabel: string }) {
 
   const option = form?.resolutions.find((r) => r.value === resolution) ?? null;
   const text = message ?? (option && alert ? (alert.is_drill ? option.drill_message : option.message) : '');
-
-  if (done) {
-    return (
-      <Screen>
-        <Title>{option?.label ?? 'Ended'}</Title>
-        <Notice tone="success">{done}</Notice>
-        <Button title="Back" onPress={() => router.back()} />
-      </Screen>
-    );
-  }
 
   if (alert === undefined) {
     return (
@@ -69,7 +62,8 @@ export function EndAlertScreen({ backLabel }: { backLabel: string }) {
     try {
       const result = await api<{ message: string }>(`/alerts/${alert.id}/resolve`, { method: 'POST', body: { resolution: option.value, resolved_message: text } });
       alertsStore.load(true);
-      setDone(result.message);
+      toast(result.message);
+      router.back();
     } catch (failure) {
       setError(failure instanceof ApiError ? (failure.field('resolved_message') ?? failure.message) : errorMessage(failure));
     } finally {
@@ -113,15 +107,19 @@ export function EditAlertScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const alert = useActiveAlert(id);
   const [form, setForm] = useState<AlertFormData | null>(null);
-  const [draft, setDraft] = useState<{ title: string; message: string; instructions: string; severity: AlertSeverity } | null>(null);
+  const [draft, setDraft] = useState<(Wording & { severity: AlertSeverity }) | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     alertForm().then(setForm, (failure) => setNotice(errorMessage(failure)));
   }, []);
-  const current = draft ?? (alert ? { title: alert.title, message: alert.message, instructions: alert.instructions ?? '', severity: alert.severity } : null);
+  // An alert from before "What to do now" starts with the line people already see (the server's fallback).
+  const current =
+    draft ??
+    (alert ? { title: alert.title, message: alert.message, what_to_do: alert.what_to_do ?? '', instructions: alert.instructions ?? '', severity: alert.severity } : null);
 
   if (alert === undefined) {
     return (
@@ -139,8 +137,12 @@ export function EditAlertScreen() {
     setErrors({});
     setNotice(null);
     try {
-      await api(`/alerts/${alert.id}`, { method: 'PUT', body: { ...current, instructions: current.instructions || null } });
+      const result = await api<{ message: string }>(`/alerts/${alert.id}`, {
+        method: 'PUT',
+        body: { ...current, what_to_do: current.what_to_do || null, instructions: current.instructions || null },
+      });
       alertsStore.load(true);
+      toast(result.message);
       router.back();
     } catch (failure) {
       if (failure instanceof ApiError && failure.status === 422) setErrors(failure.fields);
@@ -160,11 +162,18 @@ export function EditAlertScreen() {
         <ActivityIndicator color={colors.primary} />
       ) : (
         <>
-          <Field label="Title" value={current.title} onChangeText={(title) => set({ title })} maxLength={120} error={errors.title} />
-          <Field label="What is happening" value={current.message} onChangeText={(message) => set({ message })} multiline maxLength={1000} style={multiline} error={errors.message} />
-          <Field label="What to do (optional)" value={current.instructions} onChangeText={(instructions) => set({ instructions })} multiline maxLength={2000} style={multiline} error={errors.instructions} />
           <Text style={type.label}>Level</Text>
           <LevelPicker levels={form.severities} value={current.severity} onChange={(severity) => set({ severity })} />
+          <WordingFields value={current} onChange={set} severity={current.severity} limits={form.limits} errors={errors} />
+          <PhonePreview
+            wording={current}
+            severity={current.severity}
+            severityLabel={form.severities.find((s) => s.value === current.severity)?.label ?? ''}
+            typeLabel={alert?.type_label ?? ''}
+            icon={alert?.type ?? 'other'}
+            isDrill={alert?.is_drill ?? false}
+            location={alert?.location ?? ''}
+          />
           <Button title="Save changes" loadingTitle="Saving…" loading={busy} onPress={save} />
         </>
       )}
@@ -172,12 +181,16 @@ export function EditAlertScreen() {
   );
 }
 
-/** The live view asks again this often while open, and at once when an "I need help" push arrives. */
-const SAFETY_POLL_MS = 15 * 1000;
+/**
+ * The live view asks again this often while open (help requests move, like the web's 5 s help panel), and at once when
+ * an "I need help" push arrives or an admin handles a request.
+ */
+const SAFETY_POLL_MS = 5 * 1000;
 
 /**
- * "I'm safe" live view (admin): the counts, by college, and who answered, "I need help" first with their note
- * (GET /api/alerts/{id}/safety). Refreshes every 15 seconds while open, and at once when a report push arrives.
+ * "I'm safe" live view (admin): the help requests on a map with "I'm responding" and "Mark helped", then the counts, by
+ * college, and who answered, "I need help" first with their note (GET /api/alerts/{id}/safety). Refreshes every 5
+ * seconds while open, and at once when a report push arrives.
  */
 export function SafetyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -187,6 +200,8 @@ export function SafetyScreen() {
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
   const [arrivals, setArrivals] = useState(0);
   useReportArrivals(useCallback(() => setArrivals((n) => n + 1), []));
+  const refresh = useCallback(() => setArrivals((n) => n + 1), []);
+  const activeAlert = useActiveAlert(id);
 
   useFocusEffect(
     useCallback(() => {
@@ -223,6 +238,7 @@ export function SafetyScreen() {
         <ActivityIndicator color={colors.primary} />
       ) : (
         <>
+          <HelpRequestsSection alert={activeAlert} requests={view.help_requests ?? []} onChanged={refresh} />
           {view.need_help > 0 && (
             <View style={styles.helpCount} accessibilityLiveRegion="assertive">
               <Text style={styles.helpBig}>{view.need_help}</Text>
