@@ -4,7 +4,7 @@
 @section('heading', 'Map data')
 
 @section('content.admin')
-    <div class="mx-auto flex max-w-5xl flex-col gap-6">
+    <div class="mx-auto flex flex-col gap-6">
         <div>
             <h1 class="text-2xl font-semibold tracking-tight text-primary sm:text-3xl">Map data</h1>
             <p class="mt-1 text-sm text-text-muted">Shapes, floors and positions are edited in the other app. Names and photos are edited on the Buildings and Rooms pages. Bring the file back as campus.geojson.</p>

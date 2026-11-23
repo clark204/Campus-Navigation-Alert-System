@@ -7,7 +7,7 @@
 @section('heading', 'Search')
 
 @section('content.admin')
-    <div class="mx-auto flex max-w-3xl flex-col gap-6">
+    <div class="flex flex-col gap-6">
         <div>
             <h1 class="text-2xl font-semibold tracking-tight text-primary sm:text-3xl">Search</h1>
             <p class="mt-1 text-sm text-text-muted">Buildings, rooms, 360° photos, people and admin pages.</p>

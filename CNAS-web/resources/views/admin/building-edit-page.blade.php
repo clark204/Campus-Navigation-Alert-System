@@ -1,13 +1,16 @@
 @extends('layout.admin-layout')
 
+@php
+    $breadcrumbs = [['label' => $building->name]];
+@endphp
+
 @section('title', $building->name)
 @section('heading', 'Edit building')
 
 @section('content.admin')
-    <div class="mx-auto flex max-w-3xl flex-col gap-6">
+    <div class="flex flex-col gap-6">
         <div>
-            <a href="{{ route('admin.buildings.index') }}" class="text-sm font-semibold text-primary underline-offset-4 hover:underline">Buildings</a>
-            <h1 class="mt-2 text-2xl font-semibold tracking-tight text-primary sm:text-3xl">{{ $building->name }}</h1>
+            <h1 class="text-2xl font-semibold tracking-tight text-primary sm:text-3xl">{{ $building->name }}</h1>
             <p class="mt-1 text-sm text-text-muted tabular-nums">
                 {{ $building->code }} · {{ $building->type->label() }}@if ($building->floors) · {{ $building->floors }} {{ \Illuminate\Support\Str::plural('floor', $building->floors) }}@endif
             </p>

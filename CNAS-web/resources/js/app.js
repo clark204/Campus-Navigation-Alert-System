@@ -167,11 +167,27 @@ if (alertPicker) {
     import('./alert-picker.js').then(({ initAlertPicker }) => initAlertPicker(alertPicker));
 }
 
+// The alert wording (send form and Edit alert): counters and the phone preview.
+document.querySelectorAll('form:has([data-alert-wording])').forEach((form) => {
+    import('./alert-wording.js').then(({ initAlertWording }) => initAlertWording(form));
+});
+
 // Admin top bar search: suggestions while typing, "/" to jump to it (the form alone already opens the results page).
 // Admin > Alerts: the "I'm safe" panel refreshes itself every 10 s.
 const safetyLive = document.querySelector('[data-safety-live]');
 if (safetyLive) {
     import('./alert-safety-live.js').then(({ initSafetyLive }) => initSafetyLive(safetyLive));
+}
+
+// Help requests on the map (Admin > Alerts during an emergency, and an alert's report). On Admin > Alerts the queue
+// refreshes every 5 s.
+const helpWorkspace = document.querySelector('[data-help-workspace]');
+if (helpWorkspace) {
+    const helpLive = helpWorkspace.querySelector('[data-help-live]');
+    if (helpLive) {
+        import('./alert-safety-live.js').then(({ initLivePanel }) => initLivePanel(helpLive, helpLive.dataset.helpLive, 5000));
+    }
+    import('./alerts/help-map.js').then(({ initHelpMap }) => initHelpMap(helpWorkspace));
 }
 
 // Sidebar badges kept up to date (the admin's open concerns), every 30 s while the page is open.

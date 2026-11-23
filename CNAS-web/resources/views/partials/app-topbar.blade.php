@@ -1,4 +1,4 @@
-{{-- Top bar shared by the admin console and the portal: menu toggle (below lg), page heading, optional search and the
+{{-- Top bar shared by the admin console and the portal: menu toggle (below lg), breadcrumb trail (partials/app-breadcrumbs), optional search and the
      signed-in user's notification bell (partials/notification-bell) and account menu (partials/account-menu). Needs: $sidebarId and $search (id, label, placeholder, action: the results page, suggestUrl: JSON
      suggestions) or null. Signed-in pages only.
      Search: a GET form to the results page, so Enter works without JavaScript; resources/js/admin-search.js adds the
@@ -13,7 +13,7 @@
         </svg>
     </button>
 
-    <p class="truncate text-base font-semibold text-primary">@yield('heading', 'Overview')</p>
+    @include('partials.app-breadcrumbs')
 
     @if ($search)
         <a href="{{ $search['action'] }}" data-search-toggle aria-controls="{{ $search['id'] }}-form" aria-label="Search"

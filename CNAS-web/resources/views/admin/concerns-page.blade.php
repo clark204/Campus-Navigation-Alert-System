@@ -27,7 +27,7 @@
 @section('heading', 'Concerns')
 
 @section('content.admin')
-    <div class="mx-auto flex max-w-6xl flex-col gap-5">
+    <div class="flex flex-col gap-5">
         <div>
             <h1 class="text-2xl font-semibold tracking-tight text-primary sm:text-3xl">Concerns</h1>
             <p class="mt-1 text-sm text-text-muted">Messages from Help &amp; contact and the site footer. Your reply is emailed to them and shows in their portal.</p>

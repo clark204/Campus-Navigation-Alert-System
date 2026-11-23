@@ -5,6 +5,10 @@
 @extends('layout.admin-layout')
 @use('App\Enums\UserRole')
 
+@php
+    $breadcrumbs = [['label' => $account->full_name, 'url' => route('admin.accounts.show', $account)], ['label' => 'Edit details']];
+@endphp
+
 @section('title', 'Edit '.$account->full_name)
 @section('heading', 'Accounts')
 
@@ -18,15 +22,9 @@
 @endphp
 
 @section('content.admin')
-    <div class="mx-auto flex max-w-3xl flex-col gap-6">
+    <div class="flex flex-col gap-6">
         <div>
-            <a href="{{ route('admin.accounts.show', $account) }}" class="inline-flex items-center gap-1 text-sm font-semibold text-primary underline-offset-4 hover:underline">
-                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="m15 6-6 6 6 6" />
-                </svg>
-                {{ $account->full_name }}
-            </a>
-            <h1 class="mt-1 text-2xl font-semibold tracking-tight text-primary sm:text-3xl">Edit details</h1>
+            <h1 class="text-2xl font-semibold tracking-tight text-primary sm:text-3xl">Edit details</h1>
             <p class="mt-1 text-sm text-text-muted">{{ $account->role->label() }} account. Changes show everywhere at once, including the mobile app.</p>
         </div>
 

@@ -11,14 +11,17 @@
     $title = $class ? 'Edit class' : 'Add a class';
 @endphp
 
+@php
+    $breadcrumbs = [['label' => $title]];
+@endphp
+
 @section('title', $title)
 @section('heading', $scheduleName)
 
 @section('content.portal')
     <div class="mx-auto flex max-w-xl flex-col gap-6">
         <div>
-            <a href="{{ route("{$scheduleRoute}.index") }}" class="text-sm font-semibold text-primary underline-offset-4 hover:underline">{{ $scheduleName }}</a>
-            <h1 class="mt-2 text-2xl font-semibold tracking-tight text-primary sm:text-3xl">{{ $title }}</h1>
+            <h1 class="text-2xl font-semibold tracking-tight text-primary sm:text-3xl">{{ $title }}</h1>
             @if ($class?->source === ScheduleSource::Cor)
                 <p class="mt-1 text-sm text-text-muted">
                     This class came from your COR. If you change it, your version is kept the next time you import a COR.

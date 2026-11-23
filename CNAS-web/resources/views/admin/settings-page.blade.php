@@ -20,7 +20,7 @@
 @endphp
 
 @section('content.admin')
-    <div class="mx-auto flex max-w-3xl flex-col gap-6">
+    <div class="flex flex-col gap-6">
         <div>
             <h1 class="text-2xl font-semibold tracking-tight text-primary sm:text-3xl">Settings</h1>
             <p class="mt-1 text-sm text-text-muted">Contact details, emergency numbers, the academic term, your own account, and whether alerts can reach phones.</p>

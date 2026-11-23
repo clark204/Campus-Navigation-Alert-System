@@ -1,14 +1,17 @@
 @extends('layout.admin-layout')
 @use('Illuminate\Support\Number')
 
+@php
+    $breadcrumbs = [['label' => $room->name]];
+@endphp
+
 @section('title', $room->name)
 @section('heading', 'Edit room')
 
 @section('content.admin')
-    <div class="mx-auto flex max-w-3xl flex-col gap-6">
+    <div class="flex flex-col gap-6">
         <div>
-            <a href="{{ route('admin.rooms.index') }}" class="text-sm font-semibold text-primary underline-offset-4 hover:underline">Rooms</a>
-            <h1 class="mt-2 text-2xl font-semibold tracking-tight text-primary sm:text-3xl">{{ $room->name }}</h1>
+            <h1 class="text-2xl font-semibold tracking-tight text-primary sm:text-3xl">{{ $room->name }}</h1>
             <p class="mt-1 text-sm text-text-muted tabular-nums">
                 {{ $room->code }} · {{ $room->building->name }} · {{ Number::ordinal($room->floor) }} floor · {{ $room->type->label() }}
             </p>

@@ -32,7 +32,7 @@ Before finishing any change: `npx expo lint` and `npx tsc --noEmit`.
 
 | Screen | File | API |
 | --- | --- | --- |
-| Welcome: Sign in, Create account, emergency numbers (tap to call), alert banner, mini-map | `index.tsx` | `GET /emergency-contacts` |
+| Welcome: Sign in, Create account, emergency numbers (tap to call), Campus alerts, mini-map | `index.tsx` | `GET /emergency-contacts` |
 | Sign in with ID number or email | `sign-in.tsx` | `POST /login` (device name = phone model) |
 | Create account: privacy notice and consent, COR upload, check details (name re-split only), email and password, then signs in | `register.tsx` | `POST /register/cor`, `POST /register`, `POST /login` |
 | Verify email: 6-digit code, resend with countdown, "Skip for now" | `verify-email.tsx` | `POST /email/verify`, `POST /email/resend` |
@@ -48,7 +48,7 @@ Before finishing any change: `npx expo lint` and `npx tsc --noEmit`.
 | Accounts tab (search, role and "Can send alerts" filters), one account (trust, faculty or staff, temporary password, delete), create or edit | `admin/(tabs)/accounts.tsx`, `account-view.tsx`, `account-form.tsx` (`components/admin/accounts.tsx`) | `/admin/accounts…` |
 | Emergency alerts for trusted faculty and staff (Home shows it when `can_send_alerts`) | `portal/alerts.tsx` | `GET /alerts` |
 | **Portal area** for students, faculty and staff: a Stack with the tabs (Home, Map, Account) and the pages below | `portal/_layout.tsx`, `portal/(tabs)/_layout.tsx` | |
-| Portal home: greeting, the bell (unread count), alert banner, next class with Directions, My schedule / Saved places / Help & contact, emergency numbers. Staff get no class card | `portal/(tabs)/index.tsx` | `GET /schedule`, `/places`, `/notifications` |
+| Portal home: greeting, the bell (unread count), next class with Directions, My schedule / Saved places / Help & contact, emergency numbers. Staff get no class card | `portal/(tabs)/index.tsx` | `GET /schedule`, `/places`, `/notifications` |
 | My schedule (students) or My classes (faculty): today first, then the week; Directions per class; tap to edit | `portal/schedule.tsx` | `GET /schedule` |
 | Add, edit or delete a class: day chips, time chips, room list with search | `portal/class-form.tsx` (`components/class-form-parts.tsx`) | `GET /schedule/rooms`, `POST`/`PUT`/`DELETE /schedule` |
 | Import from COR (students) | `portal/schedule-import.tsx` | `POST /schedule/import` |
@@ -155,15 +155,18 @@ checks again right away when the app comes back. The rules match the website (`C
 `src/lib/alert-rules.ts`):
 
 - **Emergency**: full-screen red takeover with a looping alarm and vibration until the first tap (softer sound for
-  drills, which also show DRILL and hazard tape), "I'm safe" for signed-in users (`POST /alerts/{id}/safe`), then the
-  red banner.
-- **Warning**: orange banner, plus a one-time popup with a chime.
-- **Advisory**: yellow banner only.
-- **Ended**: green "All clear" or "False alarm" banner with the admin's message until `banner_expires_at`. It can be
-  closed.
+  drills, which also show DRILL and hazard tape). Above the fold only the kind, the title (two lines), where and the
+  bold "What to do now"; the rest is under "More details". "I'm safe" (white) and "I need help" (outlined) are pinned
+  to the bottom. After Dismiss, a red pill under the status bar until the alert ends (tap: the takeover again).
+- **Warning**: an orange toast with a chime that stays until closed.
+- **Advisory**: a yellow toast that closes by itself.
+- **Ended**: a green "All clear" or "False alarm" toast that closes by itself; the pill goes away.
 
-Each takeover or popup shows once per alert version on a phone (remembered in AsyncStorage). Guests see everything
-except "I'm safe". "I'm safe" shows as done when the user already answered on the website or another phone
+Nothing is part of a screen's layout, so nothing moves when an alert arrives. App messages ("Saved", "Password
+changed", "Message sent") are toasts too (`useToast()` from `src/lib/toasts.tsx`); form errors stay next to their
+fields. Each takeover or toast shows once per alert version on a phone (remembered in AsyncStorage), and every alert
+stays on the Alerts screen (`campus-alerts`, `GET /alerts/recent`). Guests see everything except the answers ("Sign in
+to tell the school you're safe"). "I'm safe" shows as done when the user already answered on the website or another phone
 (`my_safety_status` from the server).
 
 ## Push alerts
@@ -223,7 +226,7 @@ You need an Expo account (free) and a Google account for Firebase. Run every com
 5. **Tap opens the takeover:** send an emergency, dismiss the takeover in the app, close the app, then tap the notification. The app opens straight into the red takeover. Try it from a fully closed app too.
 6. **Push while open:** with the app open on Home, send an emergency. The takeover appears at once, not after up to 15 s, and there is no second system banner.
 7. **Sign out keeps alerts:** sign out, lock the phone, send an alert. It still arrives. In the database, the phone's `device_push_tokens` row has `user_id` null.
-8. **Alerts off:** on Home, turn off "Emergency alerts on this phone", then send an alert. No notification arrives (the row is gone), but the in-app banner still shows when CNAS is open. Turn it back on and the row comes back.
+8. **Alerts off:** on Home, turn off "Emergency alerts on this phone", then send an alert. No notification arrives (the row is gone), but the in-app takeover or toast still shows when CNAS is open. Turn it back on and the row comes back.
 9. **Second phone marks safe:** sign in with the same account on another phone or on the website, send an emergency, and tap "I'm safe" there. Within 15 s the first phone's button shows "Marked safe".
 10. **Permission said no:** on a fresh install, answer "Not now" or "Don't allow". Home shows "Turn on alerts". Tapping it asks again, or opens the phone's settings once Android stops asking.
 11. **Expo Go still works:** `npx expo start --go`. The app runs, and the console says push is skipped.

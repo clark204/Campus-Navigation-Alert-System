@@ -62,7 +62,7 @@ class GuestPagesTest extends TestCase
 
     public function test_guests_can_open_the_landing_page(): void
     {
-        $this->get(route('landing'))->assertOk()->assertSee('Know your campus.');
+        $this->get(route('landing'))->assertOk()->assertSee('Around TCC');
     }
 
     public function test_the_map_is_open_to_everyone(): void

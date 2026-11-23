@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\ConcernController as AdminConcernController;
 use App\Http\Controllers\Admin\ContactDetailsController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\EmergencyContactController;
+use App\Http\Controllers\Admin\HelpRequestController;
 use App\Http\Controllers\Admin\PanoramaController;
 use App\Http\Controllers\Admin\QrCodeController;
 use App\Http\Controllers\Admin\RoomController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\TemporaryPasswordController;
 use App\Http\Controllers\ConcernController;
+use App\Http\Controllers\HelpPingController;
 use App\Http\Controllers\NeedHelpController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PlaceController;
@@ -132,6 +134,16 @@ Route::middleware(['auth', EnsureUserIsAdmin::class])->prefix('admin')->name('ad
         Route::post('/{alert}/resolve', 'resolve')->name('resolve');
         // The "I'm safe" panel alone, asked every 10 s by alert-safety-live.js (no reload needed).
         Route::get('/{alert}/safety', 'safety')->middleware(['throttle:30,1', SetCacheHeaders::using('no_store;private')])->name('safety');
+        // The help requests (map and queue) alone, asked every 5 s by alert-safety-live.js.
+        Route::get('/{alert}/help', 'help')->middleware(['throttle:30,1', SetCacheHeaders::using('no_store;private')])->name('help');
+        // One alert's report: the History table links here.
+        Route::get('/{alert}', 'show')->name('show');
+    });
+
+    // "I'm responding" and "Mark helped" on a help request (the check must belong to the alert).
+    Route::controller(HelpRequestController::class)->prefix('alerts/{alert}/help/{safetyCheck}')->name('alerts.help.')->scopeBindings()->group(function () {
+        Route::post('/respond', 'respond')->name('respond');
+        Route::post('/helped', 'helped')->name('helped');
     });
 
     // Campus map data is edited in another app: here it is downloaded as campus.geojson and imported back.
@@ -316,4 +328,6 @@ Route::middleware('auth')->group(function () {
     // "I'm safe" or "I need help" (with a note, pushed to the admins) from the alarm takeover or the banner.
     Route::post('/alerts/{alert}/safe', SafetyCheckController::class)->middleware('throttle:10,1')->name('alerts.safe');
     Route::post('/alerts/{alert}/help', NeedHelpController::class)->middleware('throttle:10,1')->name('alerts.help');
+    // While "I need help" is open: the latest position, and back comes "<admin> is on the way" (help-tracker.js).
+    Route::post('/alerts/{alert}/help/ping', HelpPingController::class)->middleware('throttle:12,1')->name('alerts.help.ping');
 });

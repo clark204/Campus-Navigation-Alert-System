@@ -6,9 +6,9 @@
 @endphp
 <li class="flex items-center gap-2">
     <a href="{{ route('navigate', ['to' => $room->code]) }}" aria-label="Directions to {{ $room->name }}, {{ $room->locationLabel() }}"
-        class="-mx-2 flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-bg-light focus-visible:ring-4 focus-visible:ring-secondary/40 focus-visible:outline-none">
+        class="group flex min-h-16 min-w-0 flex-1 items-center gap-3 rounded-xl px-2 py-3 transition hover:bg-bg-light focus-visible:bg-bg-light focus-visible:ring-4 focus-visible:ring-secondary/40 focus-visible:outline-none">
         <span @class([
-            'flex size-9 shrink-0 items-center justify-center rounded-full',
+            'flex size-10 shrink-0 items-center justify-center rounded-xl',
             'bg-secondary/20 text-secondary-hover' => $saved,
             'bg-primary/10 text-primary' => ! $saved,
         ])>
@@ -22,12 +22,15 @@
             </svg>
         </span>
         <span class="min-w-0 flex-1">
-            <span class="block truncate text-sm font-semibold">{{ $room->name }}</span>
-            <span class="block truncate text-xs text-text-muted">{{ $room->locationLabel() }}</span>
+            <span class="block text-sm font-semibold wrap-anywhere group-hover:text-primary">{{ $room->name }}</span>
+            <span class="mt-0.5 block text-xs leading-relaxed text-text-muted wrap-anywhere">{{ $room->locationLabel() }}</span>
         </span>
         @if ($usedAt)
             <time datetime="{{ $usedAt->toIso8601String() }}" class="shrink-0 text-xs text-text-muted">{{ $usedAt->diffForHumans(short: true) }}</time>
         @endif
+        <svg class="size-4 shrink-0 text-text-muted group-hover:text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m9 5 7 7-7 7" />
+        </svg>
     </a>
     @if ($removable ?? false)
         <form method="POST" action="{{ route('places.unsave', $room) }}" class="shrink-0">

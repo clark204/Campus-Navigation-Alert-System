@@ -135,6 +135,11 @@
     .footer-input { @apply w-full rounded-xl border border-white/25 bg-white/5 px-4 py-2.5 text-sm text-white transition placeholder:text-white/55 focus:border-secondary focus:bg-white/10 focus:ring-4 focus:ring-secondary/20 focus:outline-none; }
 }
 
+/* A banner that arrives after the page loaded drops in over the top (alert-banner, data-floating). */
+@keyframes banner-drop {
+    from { transform: translateY(-100%); }
+}
+
 @keyframes toast-timer {
     to { transform: scaleX(0); }
 }

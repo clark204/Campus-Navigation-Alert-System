@@ -6,6 +6,10 @@
 @extends('layout.admin-layout')
 @use('App\Enums\UserRole')
 
+@php
+    $breadcrumbs = [['label' => $account->full_name]];
+@endphp
+
 @section('title', $account->full_name)
 @section('heading', 'Accounts')
 
@@ -30,14 +34,7 @@
 @endphp
 
 @section('content.admin')
-    <div class="mx-auto flex max-w-5xl flex-col gap-6">
-        <a href="{{ route('admin.accounts.index') }}" class="inline-flex items-center gap-1 self-start text-sm font-semibold text-primary underline-offset-4 hover:underline">
-            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="m15 6-6 6 6 6" />
-            </svg>
-            Accounts
-        </a>
-
+    <div class="flex flex-col gap-6">
         {{-- Banner --}}
         <section aria-labelledby="account-name" class="overflow-hidden rounded-2xl border border-border bg-surface">
             <div class="relative bg-primary px-5 pt-5 pb-12 text-white sm:px-6">

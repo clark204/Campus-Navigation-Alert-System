@@ -2,6 +2,10 @@
      north, "Show to users"); drag pins to move them; "Save all" saves every change in one request. Desktop only. --}}
 @extends('layout.admin-layout')
 
+@php
+    $breadcrumbs = [['label' => 'Edit on the map']];
+@endphp
+
 @section('title', 'Edit 360° photos on the map')
 @section('heading', 'Edit 360° photos on the map')
 

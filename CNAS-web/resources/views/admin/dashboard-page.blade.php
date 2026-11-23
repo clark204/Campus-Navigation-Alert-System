@@ -76,7 +76,7 @@
 @endphp
 
 @section('content.admin')
-    <div class="mx-auto flex max-w-7xl flex-col gap-6">
+    <div class="flex flex-col gap-6">
         @if ($activeAlert)
             <div role="alert" class="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-alarm px-4 py-3 text-sm text-white">
                 <p><strong>{{ $activeAlert->is_drill ? 'Drill alert' : 'Emergency alert' }} active:</strong> {{ $activeAlert->title }}</p>

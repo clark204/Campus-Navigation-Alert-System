@@ -27,7 +27,7 @@
                 </a>
                 <p class="mt-4 text-xs text-white/55">Campus directions are open to everyone. No login needed.</p>
                 <div class="mt-9 flex flex-wrap gap-x-6 gap-y-3 border-t border-white/15 pt-5 text-xs text-white/70">
-                    <span>⌖ Tagoloan, Misamis Oriental</span>
+                    <span>⌖ Baluarte, Tagoloan, Misamis Oriental</span>
                     <span>For students, faculty & visitors</span>
                 </div>
 

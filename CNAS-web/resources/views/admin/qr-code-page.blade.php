@@ -22,7 +22,7 @@
 
 <body class="min-h-svh bg-bg-light font-sans text-text-primary antialiased print:bg-white">
     <header class="border-b border-border bg-surface print:hidden">
-        <div class="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <div class="mx-auto flex flex-wrap items-center justify-between gap-3 px-4 py-3">
             <a href="{{ $backUrl }}" class="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-primary transition hover:bg-bg-light">
                 <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
                 Back to {{ $backLabel }}

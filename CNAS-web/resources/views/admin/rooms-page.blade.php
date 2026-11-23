@@ -5,7 +5,7 @@
 @section('heading', 'Rooms')
 
 @section('content.admin')
-    <div class="mx-auto flex max-w-5xl flex-col gap-6">
+    <div class="flex flex-col gap-6">
         <header class="flex flex-wrap items-end justify-between gap-4">
             <div>
                 <h1 class="text-2xl font-semibold tracking-tight text-primary sm:text-3xl">Rooms</h1>
@@ -27,8 +27,8 @@
                 </div>
             </div>
 
-            <ul id="rooms-list" role="list" class="divide-y divide-border">
-                <li class="hidden items-center gap-x-5 bg-bg-light px-5 py-2.5 text-xs font-medium text-text-muted sm:grid sm:grid-cols-[4.5rem_minmax(0,1.3fr)_minmax(0,1fr)_4.5rem_8.5rem_auto]" aria-hidden="true">
+            <ul id="rooms-list" role="list" class="divide-y divide-border sm:grid sm:grid-cols-[4.5rem_minmax(0,1.3fr)_minmax(0,1fr)_4.5rem_8.5rem_auto] sm:gap-x-5">
+                <li class="hidden items-center gap-x-5 bg-bg-light px-5 py-2.5 text-xs font-medium text-text-muted sm:col-span-full sm:grid sm:grid-cols-subgrid" aria-hidden="true">
                     <span>Code</span>
                     <span>Room</span>
                     <span>Building</span>
@@ -39,7 +39,7 @@
 
                 @forelse ($rooms as $room)
                     <li data-row data-search="{{ strtolower($room->name.' '.$room->code.' '.$room->building->name.' '.$room->type->label()) }}"
-                        class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-bg-light/60 sm:grid-cols-[4.5rem_minmax(0,1.3fr)_minmax(0,1fr)_4.5rem_8.5rem_auto] sm:gap-x-5">
+                        class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-bg-light/60 sm:col-span-full sm:grid-cols-subgrid sm:gap-x-5">
                         <div class="min-w-0 sm:hidden">
                             <p class="truncate font-semibold">{{ $room->name }}</p>
                             <p class="mt-0.5 truncate text-xs tabular-nums text-text-muted">
@@ -78,12 +78,12 @@
                         </div>
                     </li>
                 @empty
-                    <li class="px-5 py-8 text-center text-sm text-text-muted">
+                    <li class="px-5 py-8 text-center sm:col-span-full text-sm text-text-muted">
                         {{ $selectedBuilding !== '' ? 'No rooms in this building.' : 'No rooms on the map yet. Import the map file first.' }}
                     </li>
                 @endforelse
 
-                <li data-no-match hidden class="px-5 py-8 text-center text-sm text-text-muted">No rooms match that search. Try a room name, a code or a building.</li>
+                <li data-no-match hidden class="px-5 py-8 sm:col-span-full text-center text-sm text-text-muted">No rooms match that search. Try a room name, a code or a building.</li>
             </ul>
 
             <nav aria-label="Pages" data-pager hidden class="flex flex-wrap items-center justify-end gap-2 border-t border-border px-5 py-3"></nav>

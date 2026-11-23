@@ -12,11 +12,15 @@
     $iconButton = 'inline-flex min-h-10 items-center gap-2 rounded-full px-3.5 text-sm font-semibold transition';
 @endphp
 
+@php
+    $breadcrumbs = [['label' => $concern->topic->label()]];
+@endphp
+
 @section('title', $concern->topic->label().' · Concerns')
 @section('heading', 'Concerns')
 
 @section('content.admin')
-    <div class="mx-auto flex max-w-4xl flex-col gap-4">
+    <div class="flex flex-col gap-4">
         {{-- Toolbar --}}
         <div class="flex flex-wrap items-center justify-between gap-2">
             <a href="{{ $backUrl }}" class="{{ $iconButton }} -ml-3 text-text-primary hover:bg-black/5">

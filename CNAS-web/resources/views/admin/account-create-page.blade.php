@@ -5,6 +5,10 @@
 @extends('layout.admin-layout')
 @use('App\Enums\UserRole')
 
+@php
+    $breadcrumbs = [['label' => 'Create account']];
+@endphp
+
 @section('title', 'Create account')
 @section('heading', 'Accounts')
 
@@ -21,10 +25,9 @@
 @endphp
 
 @section('content.admin')
-    <div class="mx-auto flex max-w-6xl flex-col gap-6">
+    <div class="flex flex-col gap-6">
         <div>
-            <a href="{{ route('admin.accounts.index') }}" class="text-sm font-semibold text-primary underline-offset-4 hover:underline">Accounts</a>
-            <h1 class="mt-1 text-2xl font-semibold tracking-tight text-primary sm:text-3xl">Create account</h1>
+            <h1 class="text-2xl font-semibold tracking-tight text-primary sm:text-3xl">Create account</h1>
             <p class="mt-1 text-sm text-text-muted">They can sign in as soon as you save, on the website and the mobile app.</p>
         </div>
 

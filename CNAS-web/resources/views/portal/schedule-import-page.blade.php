@@ -1,14 +1,17 @@
 {{-- Student "My schedule" → Import from COR. Needs $term (the current AcademicTerm or null). --}}
 @extends('layout.portal-layout')
 
+@php
+    $breadcrumbs = [['label' => 'Import from COR']];
+@endphp
+
 @section('title', 'Import from COR')
 @section('heading', 'My schedule')
 
 @section('content.portal')
     <div class="mx-auto flex max-w-xl flex-col gap-6">
         <div>
-            <a href="{{ route('student.schedule.index') }}" class="text-sm font-semibold text-primary underline-offset-4 hover:underline">My schedule</a>
-            <h1 class="mt-2 text-2xl font-semibold tracking-tight text-primary sm:text-3xl">Import from COR</h1>
+            <h1 class="text-2xl font-semibold tracking-tight text-primary sm:text-3xl">Import from COR</h1>
         </div>
 
         @if ($term === null)
