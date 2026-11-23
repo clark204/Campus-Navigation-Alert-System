@@ -264,7 +264,7 @@ class AlertTest extends TestCase
             ->assertDontSee('>Send emergency alert</a>', false)
             ->assertSeeInOrder([
                 'Active now: Fire', 'Fire on campus', 'NEE Building', '(30 m danger zone)',
-                'Sent Nov 8, 2026, 3:14 PM by Campus Admin', '2', 'people marked themselves safe', 'End alert and notify everyone',
+                'Sent Nov 8, 2026, 3:14 PM by Campus Admin', "I'm safe", '2', 'people safe', 'not answered yet', 'End alert and notify everyone',
             ])
             ->assertSeeInOrder([
                 'History',

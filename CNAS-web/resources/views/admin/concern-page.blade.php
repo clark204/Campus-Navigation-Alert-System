@@ -111,7 +111,7 @@
                 <span class="min-w-0 truncate font-semibold text-text-primary">{{ $sender?->full_name ? $sender->full_name.' <'.$concern->email.'>' : $concern->email }}</span>
             </div>
             <label for="reply-message" class="sr-only">Your reply to {{ $sender?->first_name ?? $concern->email }}</label>
-            <textarea id="reply-message" name="message" rows="6" maxlength="{{ \App\Http\Controllers\Admin\ConcernController::REPLY_MAX }}" required
+            <textarea id="reply-message" name="message" rows="6" maxlength="{{ \App\Services\ConcernInbox::REPLY_MAX }}" required
                 placeholder="Write your reply…"
                 class="block w-full resize-y border-0 bg-transparent px-5 py-4 text-[0.9375rem] leading-7 placeholder:text-text-muted/70 focus:ring-0 focus:outline-none sm:px-6"
                 @if ($replyErrors->has('message')) aria-invalid="true" aria-describedby="reply-error" @endif>{{ $replyErrors->any() ? old('message') : '' }}</textarea>

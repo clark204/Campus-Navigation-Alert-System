@@ -64,13 +64,46 @@
                             Sent {{ $campusTime($activeAlert->sent_at) }} by {{ $activeAlert->creator?->full_name ?? 'a deleted account' }}
                         </p>
 
-                        <div class="mt-4 inline-flex items-center gap-3 rounded-xl bg-safe-tint px-4 py-3">
-                            <span class="text-2xl font-semibold tabular-nums text-safe">{{ $activeAlert->safety_checks_count }}</span>
-                            <span class="text-sm text-safe">
-                                {{ Str::plural('person', $activeAlert->safety_checks_count) }} marked themselves safe
-                                <span class="block text-xs text-safe/80">Refresh the page to update.</span>
-                            </span>
-                        </div>
+                        {{-- Who is safe (SafetyCheckSummary): the counts, by college (a link lists that college), and the
+                             names. Answers are admin-only. --}}
+                        <section id="safety" aria-labelledby="safety-heading" class="mt-4 scroll-mt-24 rounded-xl border border-safe/20 bg-safe-tint/50 p-4">
+                            <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                                <h3 id="safety-heading" class="text-sm font-semibold text-safe">I'm safe</h3>
+                                <p class="text-sm text-safe">
+                                    <span class="text-2xl font-semibold tabular-nums">{{ $safety['safe'] }}</span>
+                                    {{ Str::plural('person', $safety['safe']) }} safe ·
+                                    <span class="tabular-nums">{{ $safety['not_answered'] }}</span> not answered yet
+                                </p>
+                                <a href="{{ route('admin.alerts.index', array_filter(['college' => $safetyCollege])) }}#safety" class="text-xs font-semibold text-safe underline underline-offset-2">Refresh</a>
+                            </div>
+                            @if ($safety['colleges'] !== [])
+                                <ul class="mt-3 flex flex-wrap gap-1.5 text-xs">
+                                    <li>
+                                        <a href="{{ route('admin.alerts.index') }}#safety" @class(['inline-flex min-h-8 items-center rounded-full border px-3 font-semibold', 'border-safe bg-safe text-white' => $safetyCollege === null, 'border-safe/30 bg-white text-safe' => $safetyCollege !== null])>Everyone</a>
+                                    </li>
+                                    @foreach ($safety['colleges'] as $college)
+                                        <li>
+                                            <a href="{{ route('admin.alerts.index', ['college' => $college['id']]) }}#safety"
+                                                @class(['inline-flex min-h-8 items-center gap-1 rounded-full border px-3 font-semibold', 'border-safe bg-safe text-white' => $safetyCollege === $college['id'], 'border-safe/30 bg-white text-safe' => $safetyCollege !== $college['id']])>
+                                                {{ $college['name'] }} <span class="tabular-nums font-normal">{{ $college['safe'] }}/{{ $college['total'] }}</span>
+                                            </a>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @endif
+                            @if ($safePeople->isEmpty())
+                                <p class="mt-3 text-xs text-text-muted">Nobody here has answered yet.</p>
+                            @else
+                                <ul class="mt-3 max-h-64 divide-y divide-safe/10 overflow-y-auto text-sm">
+                                    @foreach ($safePeople as $check)
+                                        <li class="flex items-baseline justify-between gap-3 py-1.5">
+                                            <span><span class="font-medium">{{ $check->user->full_name }}</span> <span class="text-xs text-text-muted">{{ $check->user->role->label() }}@if ($check->user->program?->college) · {{ $check->user->program->college->name }}@endif</span></span>
+                                            <span class="shrink-0 text-xs text-text-muted tabular-nums">{{ $campusTime($check->responded_at) }}</span>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @endif
+                        </section>
                     </div>
 
                     @include('partials.alert-resolve-form', ['alert' => $activeAlert, 'action' => route('admin.alerts.resolve', $activeAlert)])

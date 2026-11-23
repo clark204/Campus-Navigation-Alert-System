@@ -1,14 +1,28 @@
-import { Tabs } from 'expo-router/js-tabs';
+import { Stack } from 'expo-router';
 
-import { tab, useTabBarOptions } from '@/components/tab-options';
+import { colors } from '@/theme';
 
-/** The admin layout: Dashboard, Map and Account tabs (signing out is under Account). Admins only (root layout). */
+// The tabs are the first screen, so a page opened from a tab goes back to them.
+export const unstable_settings = { initialRouteName: '(tabs)' };
+
+/**
+ * The admin area (admins only, root layout): the tabs (Dashboard, Concerns, Accounts, Map, Account) and the pages they
+ * open. Pages live here, not at the root, so the redirect after a sign-in lands on the tabs.
+ */
 export default function AdminLayout() {
   return (
-    <Tabs screenOptions={useTabBarOptions()}>
-      <Tabs.Screen name="index" options={tab('Dashboard', 'shield')} />
-      <Tabs.Screen name="map" options={tab('Map', 'map')} />
-      <Tabs.Screen name="account" options={tab('Account', 'user')} />
-    </Tabs>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="send-alert" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="edit-alert" />
+      <Stack.Screen name="end-alert" />
+      <Stack.Screen name="safety" />
+      <Stack.Screen name="alert-history" />
+      <Stack.Screen name="concern" />
+      <Stack.Screen name="account-view" />
+      <Stack.Screen name="account-form" />
+      <Stack.Screen name="change-password" />
+      <Stack.Screen name="change-email" />
+    </Stack>
   );
 }

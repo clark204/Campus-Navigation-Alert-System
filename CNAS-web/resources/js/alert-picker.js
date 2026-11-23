@@ -5,7 +5,8 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { loadMapData } from './map-data.js';
 import { COLORS } from './map-style.js';
-import { circlePolygon, pointInRing } from './navigation/evacuation.js';
+import { circlePolygon } from './navigation/evacuation.js';
+import { AFFECTED_TYPES, buildingAt as buildingUnder, locationLabel } from './navigation/incident.js';
 
 const ALARM_COLOR = '#B3121B';
 const SAFE_COLOR = '#0F6B3A';
@@ -17,13 +18,8 @@ function ringBounds(ring) {
     return [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]];
 }
 
-// Same wording as Alert::locationLabel().
-export function locationLabel(buildingNames, hasPin) {
-    if (buildingNames.length === 1) return buildingNames[0];
-    if (buildingNames.length === 2) return `${buildingNames[0]} and ${buildingNames[1]}`;
-    if (buildingNames.length > 2) return `${buildingNames[0]} and ${buildingNames.length - 1} more buildings`;
-    return hasPin ? 'Marked on the map' : 'Whole campus';
-}
+// Shared with the mobile app's send form (navigation/incident.js).
+export { locationLabel };
 
 export async function initAlertPicker(form) {
     const $ = (selector) => form.querySelector(selector);
@@ -117,7 +113,9 @@ export async function initAlertPicker(form) {
         refresh();
         return;
     }
-    const pickable = buildings.features.filter((f) => ['building', 'facility'].includes(f.properties.type));
+    const pickable = buildings.features
+        .filter((f) => AFFECTED_TYPES.includes(f.properties.type))
+        .map((f) => ({ id: f.properties.id, type: f.properties.type, ring: f.geometry.coordinates[0] }));
     const campus = buildings.features.find((f) => f.properties.type === 'campus');
     const campusBounds = ringBounds(campus.geometry.coordinates[0]);
 
@@ -163,7 +161,7 @@ export async function initAlertPicker(form) {
         '<svg viewBox="0 0 24 24" class="size-10" fill="currentColor" stroke="#fff" stroke-width="1.5" aria-hidden="true"><path d="M12 22s-7-6.4-7-12a7 7 0 0 1 14 0c0 5.6-7 12-7 12z"/><circle cx="12" cy="10" r="2.5" fill="#fff"/></svg>';
     const marker = new maplibregl.Marker({ element: pinEl, anchor: 'bottom', draggable: true });
 
-    const buildingAt = (point) => pickable.find((f) => pointInRing(point, f.geometry.coordinates[0]))?.properties.id ?? null;
+    const buildingAt = (point) => buildingUnder(point, pickable);
 
     function placePin(point) {
         longitude.value = point[0].toFixed(7);

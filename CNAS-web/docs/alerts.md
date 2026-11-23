@@ -46,9 +46,23 @@ Read this before touching alerts, push notifications, or the "I'm safe" check.
 - **Dead tokens**: a ticket with `DeviceNotRegistered` deletes the token at once. Ok tickets get `CheckExpoPushReceipts` 15 minutes later (Expo's advice), which deletes tokens whose receipt says `DeviceNotRegistered`. Other receipt errors are ignored.
 - System status shows "App push (Expo)": never red, it only says whether `EXPO_ACCESS_TOKEN` is set. "Push subscribers" counts browsers and phones.
 
+## "I'm safe" live view (built 2026-11-23)
+- `App\Services\SafetyCheckSummary`: `counts()` = safe, total (every account except admins), not answered, and per college through the account's program (`NO_COLLEGE` = "none" for accounts without one, listed last); `people()` = who is safe, newest first, one college or "none", at most 200 names. Admins are left out of both.
+- Web: the active alert on Admin > Alerts shows the counts, college chips (`?college=`, a link with `#safety`) and the names; "Refresh" reloads.
+- App: `GET /api/alerts/{alert}/safety?college=` (admin only, `no-store`), polled every 5 s on the app's "Who is safe" screen.
+- Only "I'm safe" exists (decided 2026-11-23): no "I need help" answer yet.
+
+## Mobile app (built 2026-11-23)
+`Api\AlertManagementController`, behind `EnsureUserCanSendAlerts` (the admin and trusted faculty and staff), with the web's requests and Alert methods, so logging (`alert_logs`) and push are the same:
+- `GET /api/alerts`: the active alert (`ManagedAlertResource`: AlertResource plus sent_by, resolved_by, and the log), the admin's `safety` counts, and the history (admin: 15 a page with logs; trusted: the last 5), `can_edit` (admin).
+- `GET /api/alerts/form`: the types (level, `campus_wide`, template), the levels (description, example, students_get), radii, buildings, resolutions (with their default messages, drill or not).
+- `POST /api/alerts` (`StoreAlertRequest`, `Alert::send`; 422 `form` when one is active), `PUT /api/alerts/{alert}` (admin, `UpdateAlertRequest`: revise + changeSeverity; 409 when it ended), `POST /api/alerts/{alert}/resolve` (`ResolveAlertRequest`; 409 when it ended).
+- The incident pin helpers are shared: `resources/js/navigation/incident.js` (`buildingAt`, `locationLabel`), used by `alert-picker.js` and the app (`@nav/incident.js`).
+- App screens: the admin Dashboard's active alert panel (live count, level, Edit wording, All clear, False alarm), `admin/send-alert` (type and level, drill, wording; map pin with the building under it ticked, 30/50/100 m or whole campus; "This will alert everyone"), `end-alert`, `edit-alert`, `safety`, `alert-history`. Trusted faculty and staff get the same send and end screens under `portal/alerts` (no edit, no live view), shown when `UserResource.can_send_alerts`.
+
 ## Not built yet (planned)
 - Staff alert requests that wait for admin approval (admin-marked trusted faculty and staff who send directly are built: see accounts.md)
-- "I need help" answer with a location note, and the admin live view of answers
+- "I need help" answer with a location note
 Check the code before assuming any of these exist.
 
 ## Things that break it
@@ -60,4 +74,4 @@ Check the code before assuming any of these exist.
 - Never regenerate the VAPID keys.
 
 ## Tests
-`tests/Feature/Admin/AlertTest.php`, `AlertBannerTest.php`, `AlertSeverityTest.php` (each level), `SafetyCheckTest.php` (also `my_safety_status`), `SendAlertPushTest.php`, `PushSubscriptionTest.php`, `ExpoAlertPushTest.php` (phone push, Http faked), `DevicePushTokenTest.php`, `tests/js/alerts.test.js` (the level rules), `tests/js/evacuation.test.js`
+`tests/Feature/Admin/AlertTest.php`, `Api/AlertManagementApiTest.php` (the app's API and the live view), `tests/js/incident.test.js`, `AlertBannerTest.php`, `AlertSeverityTest.php` (each level), `SafetyCheckTest.php` (also `my_safety_status`), `SendAlertPushTest.php`, `PushSubscriptionTest.php`, `ExpoAlertPushTest.php` (phone push, Http faked), `DevicePushTokenTest.php`, `tests/js/alerts.test.js` (the level rules), `tests/js/evacuation.test.js`

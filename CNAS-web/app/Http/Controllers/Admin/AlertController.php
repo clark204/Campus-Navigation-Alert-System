@@ -10,6 +10,7 @@ use App\Http\Requests\Admin\StoreAlertRequest;
 use App\Http\Requests\Admin\UpdateAlertRequest;
 use App\Models\Alert;
 use App\Services\CampusMap;
+use App\Services\SafetyCheckSummary;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -22,10 +23,19 @@ class AlertController extends Controller
 {
     private const HISTORY_PER_PAGE = 15;
 
-    public function index(): View
+    /**
+     * The active alert with who is safe (SafetyCheckSummary; ?college= lists one college's people), and the history.
+     */
+    public function index(Request $request, SafetyCheckSummary $safety): View
     {
+        $activeAlert = Alert::active()->with('creator')->latest('sent_at')->first();
+        $college = $request->filled('college') ? (string) $request->query('college') : null;
+
         return view('admin.alerts-page', [
-            'activeAlert' => Alert::active()->with('creator')->withCount('safetyChecks')->latest('sent_at')->first(),
+            'activeAlert' => $activeAlert,
+            'safety' => $activeAlert ? $safety->counts($activeAlert) : null,
+            'safePeople' => $activeAlert ? $safety->people($activeAlert, $college) : collect(),
+            'safetyCollege' => $college,
             'history' => Alert::query()
                 ->with(['logs' => fn ($logs) => $logs->with('user')->oldest('created_at')->oldest('id')])
                 ->latest('sent_at')

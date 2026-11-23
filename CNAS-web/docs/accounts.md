@@ -15,8 +15,14 @@ Read this before touching Admin > Accounts (list, create, delete) or who may sen
 
 - **Set temporary password** (account page, `admin.accounts.password`, `AccountController@password`, error bag `temporaryPassword`): for someone who forgot their password and can't reset it themselves (faculty and staff mostly; and anyone who can't open their email: check their school ID in person, fix the email with Edit details, then set this. Students who can open their email use "Forgot password?", registration.md "Password recovery"). Same Generate, Show, Copy tools (`form[data-password-tools]`). Sets the password and `users.must_change_password` (not fillable), rotates the remember token and ends all their sessions and app tokens. At the next sign-in they must choose their own ("Choose a new password", `EnsurePasswordIsChanged`). The account page shows "Waiting for them to change it" meanwhile. Not for admin accounts (403).
 
+## Code shared with the mobile app
+- The rules are in `App\Services\AccountAdministration` (create, `updateDetails`, `setTemporaryPassword`, `setTrusted`, `switchRole`, `canDelete`, `delete`) and the requests `StoreAccountRequest`, `UpdateAccountRequest`, `SetTemporaryPasswordRequest`, `SwitchRoleRequest`, `DeleteAccountRequest`. `Admin\AccountController` (web) and `Api\Admin\AccountController` (app) only call them. `AccountController::listQuery()`, `trusted()` and `programsByCollege()` are shared too.
+- App API (admin only, `EnsureUserIsAdmin`): `GET /api/admin/accounts?q=&role=&trusted=1&page=` (10 a page, counts by role, trusted count), `GET /api/admin/accounts/options`, `GET/POST /api/admin/accounts`, `GET/PUT/DELETE /api/admin/accounts/{user}` (delete needs `confirm_email`), `PATCH …/trust {trusted}`, `…/password {password}`, `…/role {role}`. Every answer has `message`; the account answers have `can_delete`, `can_be_trusted`, `can_switch_role` and the deletion preview.
+- Account changes aren't logged on the web, so the app doesn't log them either.
+- App screens: the Accounts tab, `admin/account-view` (trust switch, Faculty or staff, temporary password with Generate, Danger zone with the email typed), `admin/account-form` (create or edit).
+
 ## Not built yet
 - Changing roles other than Faculty and Staff from Admin > Accounts.
 
 ## Tests
-`tests/Feature/Admin/AccountTest.php`, `Admin/AccountEditTest.php`, `Admin/TemporaryPasswordTest.php`, `tests/Feature/Portal/TrustedAlertsTest.php`, `tests/Feature/Admin/AdminSearchTest.php` (people link), `tests/js/accounts.test.js`
+`tests/Feature/Admin/AccountTest.php`, `Api/AdminAccountApiTest.php`, `Admin/AccountEditTest.php`, `Admin/TemporaryPasswordTest.php`, `tests/Feature/Portal/TrustedAlertsTest.php`, `tests/Feature/Admin/AdminSearchTest.php` (people link), `tests/js/accounts.test.js`
