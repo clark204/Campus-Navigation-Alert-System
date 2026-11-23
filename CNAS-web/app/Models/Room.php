@@ -11,8 +11,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Number;
-use Illuminate\Support\Str;
 
 /**
  * A room people can get directions to. Found by `code` ('r5'), the id in /navigate?to=r5. Latitude and longitude
@@ -79,6 +79,19 @@ class Room extends Model
     }
 
     /**
+     * Every room a class could meet in (not comfort rooms) grouped by building, for the class form's room list (web
+     * and app). Natural order, so ComLab 2 comes before ComLab 10.
+     *
+     * @return Collection<string, Collection<int, self>>
+     */
+    public static function classRoomsByBuilding(): Collection
+    {
+        return self::query()->classRooms()->with('building')->get()
+            ->sortBy(fn (self $room) => $room->buildingLabel().' '.$room->floor.' '.$room->name, SORT_NATURAL | SORT_FLAG_CASE)
+            ->groupBy(fn (self $room) => $room->buildingLabel());
+    }
+
+    /**
      * Where the room is, in the words students use: "NEE Building · 2nd floor" (a landmark name such as "the Library"
      * reads "Library"). Needs `building` loaded.
      */
@@ -94,9 +107,7 @@ class Room extends Model
      */
     public function buildingLabel(): string
     {
-        $landmark = preg_replace('/^the\s+/i', '', (string) $this->building->landmark_name);
-
-        return $landmark !== '' ? Str::ucfirst($landmark) : $this->building->name;
+        return $this->building->knownName();
     }
 
     /**

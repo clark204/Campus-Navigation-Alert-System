@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Str;
 
 /**
  * A shape on the campus map: the campus outline, a building, a facility or the evacuation area. Found by `code`
@@ -49,6 +50,16 @@ class Building extends Model
     public function getRouteKeyName(): string
     {
         return 'code';
+    }
+
+    /**
+     * The name students use: its landmark name without "the" ("the Library" → "Library"), else its name.
+     */
+    public function knownName(): string
+    {
+        $landmark = preg_replace('/^the\s+/i', '', (string) $this->landmark_name);
+
+        return $landmark !== '' ? Str::ucfirst($landmark) : $this->name;
     }
 
     /**

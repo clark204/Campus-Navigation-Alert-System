@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\ContactDetailsController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\EmergencyContactController;
 use App\Http\Controllers\Admin\PanoramaController;
+use App\Http\Controllers\Admin\QrCodeController;
 use App\Http\Controllers\Admin\RoomController;
 use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\Admin\SettingsController;
@@ -138,6 +139,8 @@ Route::middleware(['auth', EnsureUserIsAdmin::class])->prefix('admin')->name('ad
     Route::controller(BuildingController::class)->prefix('buildings')->name('buildings.')->scopeBindings()->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/{building}/edit', 'edit')->name('edit');
+        // Its QR code (main entrance, or a door picked there), to print or save as a PNG.
+        Route::get('/{building}/qr', [QrCodeController::class, 'building'])->name('qr');
         Route::put('/{building}', 'update')->name('update');
         Route::post('/{building}/photos', 'storePhotos')->name('photos.store');
         Route::patch('/{building}/photos/{photo}/move', 'movePhoto')->name('photos.move');
@@ -146,6 +149,8 @@ Route::middleware(['auth', EnsureUserIsAdmin::class])->prefix('admin')->name('ad
     Route::controller(RoomController::class)->prefix('rooms')->name('rooms.')->scopeBindings()->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/{room}/edit', 'edit')->name('edit');
+        // Its QR code (/navigate?from=<room>), to print or save as a PNG.
+        Route::get('/{room}/qr', [QrCodeController::class, 'room'])->name('qr');
         Route::put('/{room}', 'update')->name('update');
         Route::post('/{room}/photos', 'storePhotos')->name('photos.store');
         Route::patch('/{room}/photos/{photo}/move', 'movePhoto')->name('photos.move');

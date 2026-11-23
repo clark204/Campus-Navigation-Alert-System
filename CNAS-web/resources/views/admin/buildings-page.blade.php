@@ -71,10 +71,18 @@
                             @include('admin.photo-meter', ['count' => $building->photos->count(), 'max' => $maxPhotos])
                         </div>
 
-                        <a href="{{ route('admin.buildings.edit', $building) }}"
-                            class="justify-self-end rounded-lg border border-border px-3 py-1.5 text-sm font-semibold text-primary transition hover:border-secondary hover:bg-secondary/10">
-                            Edit<span class="sr-only"> {{ $building->name }}</span>
-                        </a>
+                        <div class="flex items-center gap-2 justify-self-end">
+                            {{-- Printable QR code that starts directions here (docs/navigation.md "QR codes"). --}}
+                            <a href="{{ route('admin.buildings.qr', $building) }}"
+                                class="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-semibold text-primary transition hover:border-secondary hover:bg-secondary/10">
+                                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2M14 18h2m2 0h2v2M18 16v2" /></svg>
+                                QR code<span class="sr-only"> for {{ $building->name }}</span>
+                            </a>
+                            <a href="{{ route('admin.buildings.edit', $building) }}"
+                                class="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold text-primary transition hover:border-secondary hover:bg-secondary/10">
+                                Edit<span class="sr-only"> {{ $building->name }}</span>
+                            </a>
+                        </div>
                     </li>
                 @empty
                     <li class="px-5 py-8 text-center text-sm text-text-muted">No buildings on the map yet. Import the map file first.</li>
