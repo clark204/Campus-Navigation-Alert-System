@@ -91,6 +91,27 @@ It lasts about 1.8 s (`components/intro.tsx`).
 
 The native splash (`app.json`, expo-splash-screen) uses the same background (`#FAF8F5`) and the same logo at the same size (`assets/images/splash-logo.png`). The intro hides the splash on its first frame, so there is no flash. The logo comes from `CNAS-web/public/logo/nav-logo.svg` (copied to `assets/images/logo.svg` and drawn by `components/logo.tsx`).
 
+## App icons
+
+The icons are made from `assets/images/logo.svg` by a script. After changing the logo, run it again from `CNAS-mobile`:
+
+```bash
+node scripts/generate-icons.mjs
+```
+
+It writes:
+
+| File | What | Used by (`app.json`) |
+| --- | --- | --- |
+| `assets/images/icon.png` | 1024 px, logo on `#FAF8F5`, opaque, square corners (the OS rounds them) | `icon`, `ios.icon` |
+| `assets/images/android-icon-foreground.png` | 1024 px, logo inside the adaptive icon safe zone, transparent | `android.adaptiveIcon.foregroundImage` (background is `backgroundColor` `#FAF8F5`) |
+| `assets/images/android-icon-monochrome.png` | the same logo in one color, for Android 13+ themed icons | `android.adaptiveIcon.monochromeImage` |
+| `assets/images/favicon.png` | 48 px, transparent | `web.favicon` |
+
+Add `--preview <folder>` to also write `icons-preview.png` there: the icon on light and dark, the adaptive icon in a circle and a squircle, and the monochrome icon. `sharp` is a dev dependency only for this script. The splash logo (`splash-logo.png`) and the notification icon are not made by it.
+
+Icons are built into the app, so a new icon only shows after a new development build or APK (`eas build`), not after a reload or an update.
+
 ## Campus map
 
 `src/lib/campus-map.ts` loads `GET /api/map` and keeps the building outlines, paths and landmark names for drawing, and the buildings, paths, rooms (`entrances`), stairs and landmarks for navigation (`nav`, without photos).
