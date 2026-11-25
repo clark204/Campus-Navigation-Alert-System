@@ -33,3 +33,5 @@ AGENTS.md
 .claude/
 .mcp.json
 boost.json
+
+/docs/agent-work-log.md
